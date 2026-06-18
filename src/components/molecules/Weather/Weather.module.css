@@ -1,0 +1,28 @@
+.weather {
+  margin-top: clamp(8px, 1.6vh, 18px);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: clamp(7px, 1.2vh, 12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.ico {
+  font-size: 1.6rem;
+}
+
+.temp {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.cond {
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  color: #cfe9df;
+  text-transform: uppercase;
+}

@@ -1,0 +1,31 @@
+.screen {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  grid-template-rows: 1fr auto;
+}
+
+.gear {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  z-index: 50;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 1.2rem;
+  backdrop-filter: blur(4px);
+  transition: 0.2s;
+}
+
+.gear:hover {
+  background: rgba(0, 0, 0, 0.7);
+  transform: rotate(45deg);
+}

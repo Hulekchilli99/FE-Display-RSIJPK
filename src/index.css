@@ -1,0 +1,26 @@
+:root {
+  --green-1: #0b3d2e;
+  --green-2: #125c44;
+  --green-3: #1aa179;
+  --accent: #22c55e;
+  --sans: 'Segoe UI', Tahoma, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: var(--sans);
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+}
+
+#root {
+  height: 100%;
+}

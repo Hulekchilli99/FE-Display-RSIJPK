@@ -1,0 +1,24 @@
+.clock {
+  margin-top: clamp(10px, 2vh, 26px);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.time {
+  font-size: clamp(2.4rem, 5vh, 3.4rem);
+  font-weight: 800;
+  letter-spacing: 2px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+}
+
+.sec {
+  color: var(--green-3);
+}
+
+.date {
+  margin-top: 4px;
+  color: var(--green-3);
+  font-weight: 600;
+  font-size: 1rem;
+}

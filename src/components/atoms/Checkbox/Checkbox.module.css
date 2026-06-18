@@ -1,0 +1,20 @@
+.row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.box {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--field-accent, var(--accent));
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.label {
+  font-size: 14px;
+  color: var(--field-label, var(--text-h));
+}

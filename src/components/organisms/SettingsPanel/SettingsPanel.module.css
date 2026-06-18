@@ -1,0 +1,89 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel {
+  /* tema atom form untuk panel gelap */
+  --field-bg: rgba(255, 255, 255, 0.06);
+  --field-border: rgba(255, 255, 255, 0.15);
+  --field-text: #fff;
+  --field-label: #cfe9df;
+  --field-hint: #8fb8a8;
+  --field-placeholder: #7f9b8e;
+  --field-accent: var(--accent);
+  --field-ring: rgba(34, 197, 94, 0.2);
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #0f2a20;
+  color: #fff;
+  width: min(560px, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.h2 {
+  color: var(--green-3);
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+}
+
+.h3 {
+  margin: 10px 0 2px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #9fd9c5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 6px;
+}
+
+.note {
+  font-size: 0.75rem;
+  color: #8fb8a8;
+  margin: 0;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.grid3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.preview {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.closeBtn {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.closeBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}

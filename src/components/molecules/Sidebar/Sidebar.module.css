@@ -1,0 +1,26 @@
+.sidebar {
+  grid-row: 1 / 2;
+  background: linear-gradient(160deg, var(--green-1), var(--green-2));
+  padding: clamp(14px, 2.2vh, 26px) 24px clamp(14px, 2.2vh, 24px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  border-right: 4px solid var(--green-3);
+}
+
+.name {
+  color: var(--green-3);
+  font-size: clamp(1.2rem, 2.4vh, 1.55rem);
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.2;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.loc {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #cfe9df;
+  margin-top: 4px;
+}

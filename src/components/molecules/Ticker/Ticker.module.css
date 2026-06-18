@@ -1,0 +1,47 @@
+.ticker {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  background: #0b3d2e;
+  height: 64px;
+  overflow: hidden;
+}
+
+.label {
+  background: #facc15;
+  color: #0b3d2e;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  padding: 0 34px 0 22px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  clip-path: polygon(0 0, 100% 0, 90% 100%, 0% 100%);
+}
+
+.track {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+}
+
+.track span {
+  display: inline-block;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #fff;
+  padding-left: 100%;
+  animation: scroll 28s linear infinite;
+}
+
+@keyframes scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}

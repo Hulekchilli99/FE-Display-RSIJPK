@@ -1,0 +1,88 @@
+.bg {
+  grid-row: 1 / 2;
+  background-color: #111;
+  position: relative;
+  overflow: hidden;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  display: none;
+}
+
+.show {
+  opacity: 1;
+}
+
+/* latar blur dari gambar yang sama, agar tidak ada bar hitam kosong */
+.slide::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--img);
+  background-size: cover;
+  background-position: center;
+  filter: blur(28px) brightness(0.5);
+  transform: scale(1.12);
+}
+
+/* gambar utuh, tidak terpotong */
+.slide img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.msg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+  gap: 14px;
+  background: #111;
+  color: #fff;
+}
+
+.big {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #facc15;
+}
+
+.sub {
+  font-size: 1.1rem;
+  color: #cfe9df;
+  line-height: 1.5;
+  max-width: 600px;
+}
+
+.sub code {
+  background: rgba(255, 255, 255, 0.12);
+  padding: 3px 10px;
+  border-radius: 6px;
+}
