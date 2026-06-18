@@ -1,75 +1,62 @@
-# React + TypeScript + Vite
+# Display Masjid RSIJPK (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Tampilan layar masjid: jam, jadwal sholat, cuaca, latar (gambar/slideshow/video/
+YouTube), dan teks berjalan. Dibuat dengan **React + TypeScript + Vite**.
 
-Currently, two official plugins are available:
+Data diambil dari **backend Laravel** (repo terpisah `BE-Masjid-RSIJPK`):
+pengaturan & media tersimpan di server (MySQL), bukan lagi di browser.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Prasyarat
+- Node.js 20+ & npm
+- Backend `BE-Masjid-RSIJPK` berjalan (default `http://localhost:8000`)
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Setup
+```bash
+npm install
+cp .env.example .env      # atur VITE_API_URL bila backend bukan di localhost:8000
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+`.env`:
 ```
+VITE_API_URL=http://localhost:8000/api
+```
+
+## Menjalankan
+```bash
+npm run dev      # mode pengembangan (HMR)
+npm run build    # build produksi -> dist/
+npm run preview  # pratinjau hasil build
+npm run lint     # cek ESLint
+```
+
+## Pemakaian
+- Buka URL Vite (mis. `http://localhost:5173`).
+- Klik ikon **⚙️** (kanan atas) → **login admin** untuk mengubah pengaturan.
+  Login default ada di README backend.
+- Layar tampil tanpa login; hanya menyimpan pengaturan yang butuh login.
+
+---
+
+## Struktur singkat
+```
+src/
+  App.tsx                 # komposisi layar + ambil/simpan config ke API
+  lib/
+    api.ts                # klien API ke backend (login, config, upload)
+    config.ts             # tipe Config + cache lokal (paint instan)
+    prayers.ts            # jadwal sholat (Aladhan) + sholat aktif
+    weather.ts            # cuaca otomatis
+    datetime.ts, youtube.ts
+  components/             # atoms / molecules / organisms
+    organisms/
+      Background/         # render latar (gambar/slideshow/video/YouTube)
+      SettingsPanel/      # form pengaturan + login admin + upload
+    molecules/            # Clock, PrayerList, Sidebar, Ticker, Weather
+```
+
+## Catatan
+- Gambar/video di-upload ke backend; layar membaca URL-nya dari `GET /api/config`.
+- Kalau backend mati, layar memakai **cache config** terakhir (localStorage) agar tetap tampil.
+- Teks berjalan: kecepatan scroll otomatis menyesuaikan panjang teks (`Ticker.tsx`).

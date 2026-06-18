@@ -156,16 +156,21 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
     try {
       const url = bgUrl.trim()
       if (bgType === 'slideshow') {
+        // Slideshow tidak pakai bg tunggal -> buang link/YouTube lama.
+        next.bg = ''
         if (pendingSlides) {
           next.slides = await apiUploadSlides(pendingSlides)
         }
       } else if (url) {
         next.bg = url
-        if (isYoutube(url)) next.bgType = 'youtube'
+        next.bgType = isYoutube(url) ? 'youtube' : bgType
       } else if (pendingFile && pendingType) {
         const res = await apiUploadMedia(pendingFile)
         next.bg = res.url
         next.bgType = res.type === 'video' ? 'video' : pendingType
+      } else if (bgType !== 'youtube' && isYoutube(next.bg)) {
+        // Pindah dari YouTube ke tipe lain tanpa isi sumber baru -> bersihkan link.
+        next.bg = ''
       }
 
       if (!autoPrayer) next.times = { ...times }
