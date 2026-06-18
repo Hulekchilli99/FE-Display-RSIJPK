@@ -55,6 +55,26 @@
   margin: 0;
 }
 
+.error {
+  font-size: 0.8rem;
+  color: #ff8a8a;
+  background: rgba(255, 80, 80, 0.12);
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 4px 0;
+}
+
+.linkBtn {
+  background: none;
+  border: none;
+  color: #7ee0c2;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font: inherit;
+}
+
 .grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Config } from './lib/config'
-import { loadConfig, saveConfig } from './lib/config'
+import { cacheConfig, loadConfig } from './lib/config'
+import { apiGetConfig, apiUpdateConfig } from './lib/api'
 import { fetchWeather } from './lib/weather'
 import { activePrayer, fetchPrayers } from './lib/prayers'
 import { Sidebar, Ticker } from './components/molecules'
@@ -11,6 +12,23 @@ function App() {
   const [cfg, setCfg] = useState<Config>(() => loadConfig())
   const [panelOpen, setPanelOpen] = useState(false)
   const [activeName, setActiveName] = useState<string | null>(null)
+
+  // Ambil config terbaru dari backend saat dibuka, lalu cache untuk paint instan.
+  useEffect(() => {
+    let alive = true
+    apiGetConfig()
+      .then((c) => {
+        if (!alive) return
+        setCfg((prev) => ({ ...prev, ...c, times: { ...prev.times, ...c.times } }))
+        cacheConfig(c)
+      })
+      .catch(() => {
+        /* offline / backend mati: pakai cache lokal yang sudah dimuat */
+      })
+    return () => {
+      alive = false
+    }
+  }, [])
 
   // Cuaca & jadwal sholat otomatis: ambil sekarang lalu perbarui berkala.
   useEffect(() => {
@@ -43,9 +61,10 @@ function App() {
     return () => clearInterval(id)
   }, [cfg.times])
 
-  const handleSave = (next: Config) => {
-    setCfg(next)
-    saveConfig(next)
+  const handleSave = async (next: Config) => {
+    const saved = await apiUpdateConfig(next)
+    setCfg((prev) => ({ ...prev, ...saved, times: { ...prev.times, ...saved.times } }))
+    cacheConfig(saved)
   }
 
   return (

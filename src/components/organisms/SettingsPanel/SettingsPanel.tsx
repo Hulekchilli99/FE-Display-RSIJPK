@@ -2,7 +2,13 @@ import { useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { BgType, Config, PrayerTimes } from '../../../lib/config'
 import { DEFAULT, PRAYER_NAMES } from '../../../lib/config'
-import { idbSet } from '../../../lib/idb'
+import {
+  apiLogin,
+  apiLogout,
+  apiUploadMedia,
+  apiUploadSlides,
+  isAuthed,
+} from '../../../lib/api'
 import { isYoutube } from '../../../lib/youtube'
 import { Button } from '../../atoms/Button'
 import { Input } from '../../atoms/Input'
@@ -13,7 +19,7 @@ import styles from './SettingsPanel.module.css'
 
 export interface SettingsPanelProps {
   cfg: Config
-  onSave: (cfg: Config) => void
+  onSave: (cfg: Config) => Promise<void> | void
   onClose: () => void
 }
 
@@ -44,7 +50,7 @@ const METHODS = [
 function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
   const [name, setName] = useState(cfg.name)
   const [loc, setLoc] = useState(cfg.loc)
-  const [bgUrl, setBgUrl] = useState(cfg.bg && cfg.bg !== 'idb' ? cfg.bg : '')
+  const [bgUrl, setBgUrl] = useState(isYoutube(cfg.bg) ? cfg.bg : '')
   const [bgType, setBgType] = useState<BgType>(cfg.bgType)
   const [slideSec, setSlideSec] = useState(String(cfg.slideSec || 6))
   const [temp, setTemp] = useState(cfg.temp)
@@ -62,16 +68,42 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
   const [pendingType, setPendingType] = useState<BgType | null>(null)
   const [pendingSlides, setPendingSlides] = useState<File[] | null>(null)
   const [preview, setPreview] = useState<string | null>(
-    cfg.bgType === 'image' && cfg.bg && cfg.bg !== 'idb' ? cfg.bg : null,
+    cfg.bgType === 'image' && cfg.bg ? cfg.bg : null,
   )
   const [fileInfo, setFileInfo] = useState(
     'Mendukung gambar (JPG, PNG) & video (MP4, WebM). Atau tempel URL di bawah.',
   )
   const [slidesInfo, setSlidesInfo] = useState(
-    cfg.slidesIdb
-      ? '🖼️ Gambar slideshow tersimpan. Pilih lagi untuk mengganti.'
+    cfg.slides.length
+      ? `🖼️ ${cfg.slides.length} gambar slideshow tersimpan. Pilih lagi untuk mengganti.`
       : 'Tekan Ctrl saat memilih untuk memilih beberapa gambar.',
   )
+
+  // Status login admin & proses simpan.
+  const [authed, setAuthed] = useState(isAuthed())
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleLogin() {
+    setBusy(true)
+    setError(null)
+    try {
+      await apiLogin(email.trim(), password)
+      setAuthed(true)
+      setPassword('')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Login gagal.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleLogout() {
+    await apiLogout()
+    setAuthed(false)
+  }
 
   function onBgFile(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
@@ -97,6 +129,13 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
   }
 
   async function handleSave() {
+    if (!authed) {
+      setError('Login admin dulu untuk menyimpan.')
+      return
+    }
+    setBusy(true)
+    setError(null)
+
     const next: Config = {
       ...cfg,
       name: name.trim() || DEFAULT.name,
@@ -114,34 +153,30 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
       slideSec: parseInt(slideSec, 10) || 6,
     }
 
-    const url = bgUrl.trim()
-    if (bgType === 'slideshow') {
-      if (pendingSlides) {
-        try {
-          await idbSet('slides', pendingSlides)
-          next.slidesIdb = true
-          next.slides = []
-        } catch {
-          alert('Gagal menyimpan gambar slideshow. Coba gambar lebih sedikit/kecil.')
+    try {
+      const url = bgUrl.trim()
+      if (bgType === 'slideshow') {
+        if (pendingSlides) {
+          next.slides = await apiUploadSlides(pendingSlides)
         }
+      } else if (url) {
+        next.bg = url
+        if (isYoutube(url)) next.bgType = 'youtube'
+      } else if (pendingFile && pendingType) {
+        const res = await apiUploadMedia(pendingFile)
+        next.bg = res.url
+        next.bgType = res.type === 'video' ? 'video' : pendingType
       }
-    } else if (url) {
-      next.bg = url
-      if (isYoutube(url)) next.bgType = 'youtube'
-    } else if (pendingFile && pendingType) {
-      try {
-        await idbSet('bg', pendingFile)
-        next.bg = 'idb'
-        next.bgType = pendingType
-      } catch {
-        alert('Gagal menyimpan file. Coba file lebih kecil atau pakai URL.')
-      }
+
+      if (!autoPrayer) next.times = { ...times }
+
+      await onSave(next)
+      onClose()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Gagal menyimpan.')
+    } finally {
+      setBusy(false)
     }
-
-    if (!autoPrayer) next.times = { ...times }
-
-    onSave(next)
-    onClose()
   }
 
   return (
@@ -153,6 +188,39 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
     >
       <div className={styles.panel}>
         <h2 className={styles.h2}>⚙️ Pengaturan Tampilan</h2>
+
+        {!authed ? (
+          <>
+            <h3 className={styles.h3}>Login Admin</h3>
+            <p className={styles.note}>
+              Login untuk mengubah & menyimpan pengaturan. Tampilan layar tetap
+              berjalan tanpa login.
+            </p>
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Input
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Button variant="primary" fullWidth onClick={handleLogin} disabled={busy}>
+              {busy ? 'Masuk…' : 'Login'}
+            </Button>
+            {error && <p className={styles.error}>{error}</p>}
+          </>
+        ) : (
+          <p className={styles.note}>
+            ✅ Login sebagai admin.{' '}
+            <button type="button" className={styles.linkBtn} onClick={handleLogout}>
+              Logout
+            </button>
+          </p>
+        )}
 
         <h3 className={styles.h3}>Identitas Masjid</h3>
         <Input label="Nama Masjid" value={name} onChange={(e) => setName(e.target.value)} />
@@ -252,9 +320,15 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
         <h3 className={styles.h3}>Teks Berjalan</h3>
         <Textarea label="Isi informasi" value={ticker} onChange={(e) => setTicker(e.target.value)} />
 
+        {error && authed && <p className={styles.error}>{error}</p>}
         <div className={styles.btns}>
-          <Button variant="primary" fullWidth onClick={handleSave}>
-            Simpan
+          <Button
+            variant="primary"
+            fullWidth
+            onClick={handleSave}
+            disabled={busy || !authed}
+          >
+            {busy ? 'Menyimpan…' : 'Simpan'}
           </Button>
           <Button variant="ghost" fullWidth className={styles.closeBtn} onClick={onClose}>
             Tutup

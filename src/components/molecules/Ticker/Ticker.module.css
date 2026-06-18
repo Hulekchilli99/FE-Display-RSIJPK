@@ -34,7 +34,7 @@
   font-weight: 600;
   color: #fff;
   padding-left: 100%;
-  animation: scroll 28s linear infinite;
+  animation: scroll var(--dur, 28s) linear infinite;
 }
 
 @keyframes scroll {

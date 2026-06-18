@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Config } from '../../../lib/config'
-import { idbGet } from '../../../lib/idb'
 import { isYoutube, youtubeId } from '../../../lib/youtube'
 import styles from './Background.module.css'
 
@@ -31,7 +30,6 @@ function Background({ cfg }: BackgroundProps) {
     if (!a || !b) return
 
     let timer: ReturnType<typeof setInterval> | null = null
-    const objUrls: string[] = []
     let cancelled = false
 
     const setSlide = (el: HTMLDivElement, url: string) => {
@@ -72,25 +70,21 @@ function Background({ cfg }: BackgroundProps) {
       )
     }
 
-    async function apply() {
+    function apply() {
       setVideoSrc(null)
       setYtId(null)
       setMessage(null)
       stopSlideshow()
+      if (cancelled) return
 
       // link YouTube selalu diperlakukan sebagai YouTube
       const bgType = isYoutube(cfg.bg) ? 'youtube' : cfg.bgType
 
       if (bgType === 'slideshow') {
-        let slides = cfg.slides || []
-        if (cfg.slidesIdb) {
-          const arr = await idbGet<Blob[]>('slides')
-          if (cancelled) return
-          slides = (arr || []).map((blob) => {
-            const u = URL.createObjectURL(blob)
-            objUrls.push(u)
-            return u
-          })
+        const slides = cfg.slides || []
+        if (!slides.length) {
+          setMessage('empty')
+          return
         }
         startSlideshow(slides, cfg.slideSec || 6)
         return
@@ -107,19 +101,7 @@ function Background({ cfg }: BackgroundProps) {
         return
       }
 
-      let src = cfg.bg
-      if (src === 'idb') {
-        const blob = await idbGet<Blob>('bg')
-        if (cancelled) return
-        if (blob) {
-          const u = URL.createObjectURL(blob)
-          objUrls.push(u)
-          src = u
-        } else {
-          src = ''
-        }
-      }
-
+      const src = cfg.bg
       if (bgType === 'video' && src) {
         setVideoSrc(src)
       } else if (src) {
@@ -134,10 +116,9 @@ function Background({ cfg }: BackgroundProps) {
     return () => {
       cancelled = true
       stopSlideshow()
-      objUrls.forEach((u) => URL.revokeObjectURL(u))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cfg.bg, cfg.bgType, cfg.slidesIdb, cfg.slideSec, slidesKey])
+  }, [cfg.bg, cfg.bgType, cfg.slideSec, slidesKey])
 
   return (
     <div className={styles.bg}>

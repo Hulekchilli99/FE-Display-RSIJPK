@@ -1,5 +1,3 @@
-import { DEFAULT_SLIDES } from '../assets/slides'
-
 export type BgType = 'image' | 'slideshow' | 'video' | 'youtube'
 
 export interface PrayerTimes {
@@ -14,13 +12,11 @@ export interface PrayerTimes {
 export interface Config {
   name: string
   loc: string
-  /** Image/video URL, or "idb" when stored in IndexedDB. */
+  /** URL gambar/video latar (dari backend), atau link YouTube. */
   bg: string
   bgType: BgType
-  /** Slideshow image URLs (used when slidesIdb is false). */
+  /** Daftar URL gambar slideshow (dari backend). */
   slides: string[]
-  /** True when slideshow images are stored in IndexedDB under "slides". */
-  slidesIdb: boolean
   slideSec: number
   temp: string
   cond: string
@@ -48,8 +44,7 @@ export const DEFAULT: Config = {
   loc: 'Jakarta Timur',
   bg: '',
   bgType: 'slideshow',
-  slides: DEFAULT_SLIDES,
-  slidesIdb: false,
+  slides: [],
   slideSec: 6,
   temp: '28°C',
   cond: 'CERAH',
@@ -64,11 +59,13 @@ export const DEFAULT: Config = {
   times: { Subuh: '', Syuruq: '', Dzuhur: '', Ashar: '', Maghrib: '', Isya: '' },
 }
 
-const CFG_KEY = 'masjidCfg_v4'
+// Cache config terakhir dari server, agar layar langsung tampil saat dibuka
+// (sebelum request ke backend selesai). Sumber kebenaran tetap backend.
+const CACHE_KEY = 'masjidCfgCache_v1'
 
 export function loadConfig(): Config {
   try {
-    const parsed = JSON.parse(localStorage.getItem(CFG_KEY) || '{}')
+    const parsed = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}')
     return {
       ...DEFAULT,
       ...parsed,
@@ -79,10 +76,10 @@ export function loadConfig(): Config {
   }
 }
 
-export function saveConfig(cfg: Config): void {
+export function cacheConfig(cfg: Config): void {
   try {
-    localStorage.setItem(CFG_KEY, JSON.stringify(cfg))
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cfg))
   } catch {
-    /* cfg kecil, jarang gagal */
+    /* abaikan */
   }
 }

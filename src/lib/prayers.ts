@@ -28,12 +28,15 @@ export async function fetchPrayers(cfg: Config): Promise<PrayerTimes | null> {
   }
 }
 
+// Syuruq (terbit matahari) hanya penanda, bukan waktu sholat -> tak di-highlight.
+const ACTIVE_NAMES = PRAYER_NAMES.filter((n) => n !== 'Syuruq')
+
 // Sholat yang sedang berlangsung: waktu terdekat yang sudah lewat hari ini.
 export function activePrayer(times: PrayerTimes, now: Date): string | null {
   const nowMin = now.getHours() * 60 + now.getMinutes()
   let active: string | null = null
   let bestDiff = Infinity
-  for (const n of PRAYER_NAMES) {
+  for (const n of ACTIVE_NAMES) {
     const t = times[n]
     if (!t) continue
     const [h, m] = t.split(':').map(Number)
