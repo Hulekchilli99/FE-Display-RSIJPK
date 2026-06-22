@@ -87,6 +87,7 @@ function App() {
           cond={cfg.cond}
           ico={cfg.ico}
           times={cfg.times}
+          iqomah={cfg.iqomah}
           activeName={activeName}
         />
         <Background cfg={cfg} />

@@ -1,7 +1,8 @@
-import type { PrayerTimes } from '../../../lib/config'
+import type { Iqomah, PrayerTimes } from '../../../lib/config'
 import { Clock } from '../Clock'
 import { Weather } from '../Weather'
 import { PrayerList } from '../PrayerList'
+import { IqomahCountdown } from '../IqomahCountdown'
 import styles from './Sidebar.module.css'
 
 export interface SidebarProps {
@@ -11,6 +12,7 @@ export interface SidebarProps {
   cond: string
   ico: string
   times: PrayerTimes
+  iqomah: Iqomah
   activeName: string | null
 }
 
@@ -21,6 +23,7 @@ function Sidebar({
   cond,
   ico,
   times,
+  iqomah,
   activeName,
 }: SidebarProps) {
   return (
@@ -30,6 +33,7 @@ function Sidebar({
 
       <Weather temp={temp} cond={cond} ico={ico} />
       <Clock />
+      <IqomahCountdown times={times} iqomah={iqomah} />
       <PrayerList times={times} activeName={activeName} />
     </aside>
   )

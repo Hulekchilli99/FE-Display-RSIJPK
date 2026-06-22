@@ -9,6 +9,15 @@ export interface PrayerTimes {
   Isya: string
 }
 
+/** Jeda (menit) hitung mundur antara adzan dan iqomah per sholat. */
+export interface Iqomah {
+  Subuh: number
+  Dzuhur: number
+  Ashar: number
+  Maghrib: number
+  Isya: number
+}
+
 export interface Config {
   name: string
   loc: string
@@ -28,11 +37,21 @@ export interface Config {
   lon: string
   ticker: string
   times: PrayerTimes
+  iqomah: Iqomah
 }
 
 export const PRAYER_NAMES: (keyof PrayerTimes)[] = [
   'Subuh',
   'Syuruq',
+  'Dzuhur',
+  'Ashar',
+  'Maghrib',
+  'Isya',
+]
+
+/** Sholat yang punya jeda iqomah (Syuruq bukan waktu sholat). */
+export const IQOMAH_NAMES: (keyof Iqomah)[] = [
+  'Subuh',
   'Dzuhur',
   'Ashar',
   'Maghrib',
@@ -57,6 +76,7 @@ export const DEFAULT: Config = {
   ticker:
     'Selamat datang di Masjid Baitusy Syifa, Jakarta Timur. Mohon nonaktifkan HP saat beribadah. Jagalah kebersihan dan ketertiban bersama.',
   times: { Subuh: '', Syuruq: '', Dzuhur: '', Ashar: '', Maghrib: '', Isya: '' },
+  iqomah: { Subuh: 10, Dzuhur: 10, Ashar: 10, Maghrib: 5, Isya: 10 },
 }
 
 // Cache config terakhir dari server, agar layar langsung tampil saat dibuka
@@ -70,6 +90,7 @@ export function loadConfig(): Config {
       ...DEFAULT,
       ...parsed,
       times: { ...DEFAULT.times, ...(parsed.times || {}) },
+      iqomah: { ...DEFAULT.iqomah, ...(parsed.iqomah || {}) },
     }
   } catch {
     return { ...DEFAULT }

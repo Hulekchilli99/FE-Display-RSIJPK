@@ -1,5 +1,5 @@
-import type { Config, PrayerTimes } from './config'
-import { PRAYER_NAMES } from './config'
+import type { Config, Iqomah, PrayerTimes } from './config'
+import { IQOMAH_NAMES, PRAYER_NAMES } from './config'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -47,4 +47,32 @@ export function activePrayer(times: PrayerTimes, now: Date): string | null {
     }
   }
   return active
+}
+
+export interface IqomahCounter {
+  /** Sholat yang sedang menunggu iqomah. */
+  name: keyof Iqomah
+  /** Sisa waktu menuju iqomah, dalam detik. */
+  remainingSec: number
+}
+
+// Bila sekarang berada dalam jeda adzan -> iqomah suatu sholat, kembalikan sisa
+// waktunya (detik). null bila di luar jeda mana pun.
+export function iqomahCountdown(
+  times: PrayerTimes,
+  iqomah: Iqomah,
+  now: Date,
+): IqomahCounter | null {
+  const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()
+  for (const n of IQOMAH_NAMES) {
+    const t = times[n]
+    const mins = iqomah?.[n]
+    if (!t || !mins || mins <= 0) continue
+    const [h, m] = t.split(':').map(Number)
+    const elapsed = nowSec - (h * 3600 + m * 60)
+    if (elapsed >= 0 && elapsed < mins * 60) {
+      return { name: n, remainingSec: mins * 60 - elapsed }
+    }
+  }
+  return null
 }

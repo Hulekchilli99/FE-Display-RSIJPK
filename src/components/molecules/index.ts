@@ -1,5 +1,6 @@
 export * from './Clock'
 export * from './Weather'
 export * from './PrayerList'
+export * from './IqomahCountdown'
 export * from './Sidebar'
 export * from './Ticker'

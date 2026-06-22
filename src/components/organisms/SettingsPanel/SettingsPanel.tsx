@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { ChangeEvent } from 'react'
-import type { BgType, Config, PrayerTimes } from '../../../lib/config'
-import { DEFAULT, PRAYER_NAMES } from '../../../lib/config'
+import type { BgType, Config, Iqomah, PrayerTimes } from '../../../lib/config'
+import { DEFAULT, IQOMAH_NAMES, PRAYER_NAMES } from '../../../lib/config'
 import {
   apiLogin,
   apiLogout,
@@ -63,6 +63,7 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
   const [method, setMethod] = useState(cfg.method)
   const [ticker, setTicker] = useState(cfg.ticker)
   const [times, setTimes] = useState<PrayerTimes>({ ...cfg.times })
+  const [iqomah, setIqomah] = useState<Iqomah>({ ...DEFAULT.iqomah, ...cfg.iqomah })
 
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [pendingType, setPendingType] = useState<BgType | null>(null)
@@ -174,6 +175,7 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
       }
 
       if (!autoPrayer) next.times = { ...times }
+      next.iqomah = { ...iqomah }
 
       await onSave(next)
       onClose()
@@ -321,6 +323,26 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
             ))}
           </div>
         )}
+
+        <h3 className={styles.h3}>Jeda Adzan → Iqomah (menit)</h3>
+        <p className={styles.note}>
+          Lama hitung mundur setelah adzan sampai iqomah, per sholat.
+        </p>
+        <div className={styles.grid3}>
+          {IQOMAH_NAMES.map((n) => (
+            <Input
+              key={n}
+              label={n}
+              type="number"
+              min={0}
+              max={120}
+              value={String(iqomah[n] ?? 0)}
+              onChange={(e) =>
+                setIqomah((q) => ({ ...q, [n]: parseInt(e.target.value, 10) || 0 }))
+              }
+            />
+          ))}
+        </div>
 
         <h3 className={styles.h3}>Teks Berjalan</h3>
         <Textarea label="Isi informasi" value={ticker} onChange={(e) => setTicker(e.target.value)} />
