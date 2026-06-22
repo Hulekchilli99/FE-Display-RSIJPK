@@ -17,25 +17,14 @@
   opacity: 1;
 }
 
-/* latar blur dari gambar yang sama, agar tidak ada bar hitam kosong */
-.slide::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: var(--img);
-  background-size: cover;
-  background-position: center;
-  filter: blur(28px) brightness(0.5);
-  transform: scale(1.12);
-}
-
-/* gambar utuh, tidak terpotong */
+/* gambar mengisi penuh area, tanpa blur (sisi yang lebih akan terpotong) */
 .slide img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  object-position: center;
 }
 
 .video {
