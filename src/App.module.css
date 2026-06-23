@@ -3,7 +3,9 @@
   width: 100vw;
   height: 100vh;
   display: grid;
-  grid-template-columns: 400px 1fr;
+  /* Sidebar relatif lebar layar (dibatasi 360-460px) supaya rasio area gambar
+     konsisten di berbagai resolusi, bukan menyempit/melebar ekstrem. */
+  grid-template-columns: clamp(360px, 20vw, 460px) 1fr;
   grid-template-rows: 1fr auto;
 }
 

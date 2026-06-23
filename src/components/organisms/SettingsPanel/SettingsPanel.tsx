@@ -53,6 +53,7 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
   const [bgUrl, setBgUrl] = useState(isYoutube(cfg.bg) ? cfg.bg : '')
   const [bgType, setBgType] = useState<BgType>(cfg.bgType)
   const [slideSec, setSlideSec] = useState(String(cfg.slideSec || 6))
+  const [ytSound, setYtSound] = useState(cfg.ytSound)
   const [temp, setTemp] = useState(cfg.temp)
   const [cond, setCond] = useState(cfg.cond)
   const [ico, setIco] = useState(cfg.ico)
@@ -152,6 +153,7 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
       ticker: ticker.trim(),
       bgType,
       slideSec: parseInt(slideSec, 10) || 6,
+      ytSound,
     }
 
     try {
@@ -257,6 +259,21 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
           options={BG_TYPES}
           hint="Untuk YouTube: pilih tipe ini lalu tempel link live/video YouTube di kolom URL."
         />
+        {(bgType === 'youtube' || isYoutube(bgUrl)) && (
+          <>
+            <Checkbox
+              label="Putar suara YouTube (live/video latar)"
+              checked={ytSound}
+              onChange={(e) => setYtSound(e.target.checked)}
+            />
+            <p className={styles.note}>
+              Browser memblokir suara otomatis. Suara baru keluar setelah layar
+              disentuh/klik sekali — atau jalankan browser kiosk dengan flag{' '}
+              <code>--autoplay-policy=no-user-gesture-required</code> agar langsung
+              bersuara.
+            </p>
+          </>
+        )}
         {bgType === 'slideshow' && (
           <>
             <Input

@@ -9,16 +9,32 @@ export interface BackgroundProps {
 
 type Message = 'empty' | 'ytfile' | null
 
-function youtubeEmbedUrl(id: string) {
+// Default mute=1: autoplay bersuara diblokir browser sebelum ada interaksi
+// user. Saat suara diaktifkan, iframe di-reload dengan mute=0 di dalam window
+// "user activation" (lihat efek unmute di bawah).
+function youtubeEmbedUrl(id: string, muted: boolean) {
   const origin = encodeURIComponent(location.origin)
-  return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&loop=1&playlist=${id}&origin=${origin}&enablejsapi=1`
+  const mute = muted ? 1 : 0
+  return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${mute}&controls=0&rel=0&playsinline=1&loop=1&playlist=${id}&origin=${origin}&enablejsapi=1`
+}
+
+// Kirim perintah ke player YouTube lewat postMessage (butuh enablejsapi=1).
+function ytCommand(frame: HTMLIFrameElement, func: string, args: unknown[] = []) {
+  frame.contentWindow?.postMessage(
+    JSON.stringify({ event: 'command', func, args }),
+    '*',
+  )
 }
 
 function Background({ cfg }: BackgroundProps) {
   const slideARef = useRef<HTMLDivElement>(null)
   const slideBRef = useRef<HTMLDivElement>(null)
+  const frameRef = useRef<HTMLIFrameElement>(null)
   const [videoSrc, setVideoSrc] = useState<string | null>(null)
   const [ytId, setYtId] = useState<string | null>(null)
+  // Mulai selalu muted agar autoplay pasti jalan; di-set false saat suara
+  // diaktifkan + ada izin (flag kiosk / interaksi user) -> iframe reload.
+  const [ytMuted, setYtMuted] = useState(true)
   const [message, setMessage] = useState<Message>(null)
 
   // Kunci stabil untuk daftar slide (array baru tiap render).
@@ -120,6 +136,55 @@ function Background({ cfg }: BackgroundProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cfg.bg, cfg.bgType, cfg.slideSec, slidesKey])
 
+  // Saat ganti video / matikan suara: kembali ke kondisi muted (autoplay aman).
+  useEffect(() => {
+    setYtMuted(true)
+  }, [ytId, cfg.ytSound])
+
+  // Aktifkan suara YouTube saat ytSound aktif. Browser memblokir autoplay
+  // bersuara, jadi:
+  //  1) Coba unmute via postMessage tepat setelah player siap — berhasil bila
+  //     browser dijalankan dengan flag kiosk
+  //     (Chrome: --autoplay-policy=no-user-gesture-required).
+  //  2) Pada interaksi user pertama (klik/tap/keyboard), set ytMuted=false
+  //     supaya iframe di-reload dengan mute=0 di dalam window user-activation.
+  //     Ini jalur paling andal untuk display yang bisa disentuh.
+  useEffect(() => {
+    if (!ytId || !cfg.ytSound) return
+
+    // Jalur kiosk: coba unmute langsung beberapa kali setelah player siap.
+    const tryApiUnmute = () => {
+      const f = frameRef.current
+      if (!f) return
+      ytCommand(f, 'unMute')
+      ytCommand(f, 'setVolume', [100])
+      ytCommand(f, 'playVideo')
+    }
+    const timers = ytMuted
+      ? [600, 1500, 3000].map((ms) => setTimeout(tryApiUnmute, ms))
+      : []
+
+    // Jalur interaksi: reload iframe dengan mute=0 saat user pertama menyentuh.
+    const events: (keyof DocumentEventMap)[] = [
+      'pointerdown',
+      'touchstart',
+      'keydown',
+    ]
+    const onInteract = () => setYtMuted(false)
+    const removeListeners = () =>
+      events.forEach((e) => document.removeEventListener(e, onInteract))
+    if (ytMuted) {
+      events.forEach((e) =>
+        document.addEventListener(e, onInteract, { once: true }),
+      )
+    }
+
+    return () => {
+      timers.forEach(clearTimeout)
+      removeListeners()
+    }
+  }, [ytId, cfg.ytSound, ytMuted])
+
   return (
     <div className={styles.bg}>
       <div ref={slideARef} className={styles.slide}>
@@ -140,15 +205,21 @@ function Background({ cfg }: BackgroundProps) {
         />
       )}
 
-      {ytId && (
-        <iframe
-          className={styles.frame}
-          src={youtubeEmbedUrl(ytId)}
-          allow="autoplay; encrypted-media"
-          allowFullScreen
-          title="background"
-        />
-      )}
+      {ytId &&
+        (() => {
+          const muted = !cfg.ytSound || ytMuted
+          return (
+            <iframe
+              key={`${ytId}-${muted ? 'm' : 's'}`}
+              ref={frameRef}
+              className={styles.frame}
+              src={youtubeEmbedUrl(ytId, muted)}
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+              title="background"
+            />
+          )
+        })()}
 
       {message === 'empty' && (
         <div className={styles.msg}>

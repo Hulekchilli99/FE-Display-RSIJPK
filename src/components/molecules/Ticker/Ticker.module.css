@@ -3,7 +3,9 @@
   display: flex;
   align-items: center;
   background: #0b3d2e;
-  height: 64px;
+  /* Tinggi relatif tinggi layar (dibatasi 56-84px) supaya rasio area gambar
+     ikut konsisten lintas resolusi. */
+  height: clamp(56px, 6vh, 84px);
   overflow: hidden;
 }
 

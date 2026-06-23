@@ -27,6 +27,8 @@ export interface Config {
   /** Daftar URL gambar slideshow (dari backend). */
   slides: string[]
   slideSec: number
+  /** Putar audio YouTube latar (live/video). Default mati. */
+  ytSound: boolean
   temp: string
   cond: string
   ico: string
@@ -65,6 +67,7 @@ export const DEFAULT: Config = {
   bgType: 'slideshow',
   slides: [],
   slideSec: 6,
+  ytSound: false,
   temp: '28°C',
   cond: 'CERAH',
   ico: '☀️',
