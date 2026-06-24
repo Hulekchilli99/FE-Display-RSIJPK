@@ -15,6 +15,7 @@ import { Input } from '../../atoms/Input'
 import { Select } from '../../atoms/Select'
 import { Textarea } from '../../atoms/Textarea'
 import { Checkbox } from '../../atoms/Checkbox'
+import { DisplaySwitcher } from '../../molecules/DisplaySwitcher'
 import styles from './SettingsPanel.module.css'
 
 export interface SettingsPanelProps {
@@ -197,6 +198,8 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
     >
       <div className={styles.panel}>
         <h2 className={styles.h2}>⚙️ Pengaturan Tampilan</h2>
+
+        <DisplaySwitcher />
 
         {!authed ? (
           <>

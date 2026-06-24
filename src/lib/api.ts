@@ -22,9 +22,15 @@ function authHeaders(): Record<string, string> {
   return t ? { Authorization: `Bearer ${t}` } : {}
 }
 
-/** Baca config global (publik, tanpa login). */
-export async function apiGetConfig(): Promise<Config> {
-  const r = await fetch(`${BASE}/config`, { headers: { Accept: 'application/json' } })
+// Endpoint config: 'masjid' tetap memakai /config (lama, tidak breaking),
+// slug lain memakai /config/{slug}.
+function configPath(slug: string): string {
+  return slug === 'masjid' ? `${BASE}/config` : `${BASE}/config/${slug}`
+}
+
+/** Baca config sebuah display (publik, tanpa login). */
+export async function apiGetConfig(slug = 'masjid'): Promise<Config> {
+  const r = await fetch(configPath(slug), { headers: { Accept: 'application/json' } })
   if (!r.ok) throw new Error('Gagal memuat pengaturan dari server.')
   return r.json()
 }
@@ -53,9 +59,9 @@ export async function apiLogout(): Promise<void> {
   setToken(null)
 }
 
-/** Simpan config (perlu login). */
-export async function apiUpdateConfig(cfg: Partial<Config>): Promise<Config> {
-  const r = await fetch(`${BASE}/config`, {
+/** Simpan config sebuah display (perlu login). */
+export async function apiUpdateConfig(cfg: Partial<Config>, slug = 'masjid'): Promise<Config> {
+  const r = await fetch(configPath(slug), {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...authHeaders() },
     body: JSON.stringify(cfg),
