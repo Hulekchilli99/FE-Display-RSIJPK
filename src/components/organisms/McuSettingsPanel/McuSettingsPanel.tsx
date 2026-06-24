@@ -85,10 +85,10 @@ function McuSettingsPanel({ cfg, onSave, onClose }: McuSettingsPanelProps) {
       rightSound,
       footerOn,
       footer: {
-        name: footer.name.trim(),
-        address: footer.address.trim(),
-        phone: footer.phone.trim(),
-        website: footer.website.trim(),
+        name: (footer.name ?? '').trim(),
+        address: (footer.address ?? '').trim(),
+        phone: (footer.phone ?? '').trim(),
+        website: (footer.website ?? '').trim(),
       },
     }
 
