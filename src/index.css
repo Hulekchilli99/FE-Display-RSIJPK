@@ -6,6 +6,13 @@
   --sans: 'Segoe UI', Tahoma, sans-serif;
 }
 
+/* Root font-size ikut tinggi layar (basis 1080p = 16px). Semua ukuran rem
+   otomatis menyesuaikan proporsional di TV 1080p maupun 4K, jadi teks tidak
+   mengecil di resolusi tinggi. Dibatasi 13-30px agar aman di window kecil. */
+:root {
+  font-size: clamp(13px, 1.481vh, 30px);
+}
+
 * {
   margin: 0;
   padding: 0;

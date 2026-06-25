@@ -1,6 +1,8 @@
 .bg {
   grid-row: 1 / 2;
-  background-color: #111;
+  /* Backdrop lembut mengisi area kosong saat poster tampil utuh (contain),
+     senada dengan layout MCU. */
+  background: radial-gradient(ellipse at center, #1a2330 0%, #0b0f14 100%);
   position: relative;
   overflow: hidden;
 }
@@ -17,14 +19,14 @@
   opacity: 1;
 }
 
-/* gambar mengisi penuh area (full, tanpa tepi hitam). Pakai gambar rasio ~3:2
-   (1536x1024) agar potongannya minim. */
+/* Tampilkan gambar/poster utuh tanpa terpotong (QR, nomor rekening, logo harus
+   selalu terlihat penuh). Sisa area diisi backdrop gelap di .bg. */
 .slide img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
 }
 
