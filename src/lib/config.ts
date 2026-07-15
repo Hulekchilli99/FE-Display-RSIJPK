@@ -1,6 +1,9 @@
 export type BgType = 'image' | 'slideshow' | 'video' | 'youtube'
 
-/** Jenis tampilan: masjid (sidebar + jadwal sholat) atau mcu (split layar). */
+/**
+ * Design tampilan: masjid (sidebar + jadwal sholat) atau mcu (split layar).
+ * Satu design bisa dipakai beberapa unit — lihat DISPLAYS.
+ */
 export type DisplayType = 'masjid' | 'mcu'
 
 /** Isi footer biru bawah (layout MCU). */
@@ -32,7 +35,7 @@ export interface Iqomah {
 export interface Config {
   /** Penanda design yang dipakai layar. */
   type: DisplayType
-  /** Identifier unit/display di backend (mis. 'masjid', 'mcu'). */
+  /** Identifier unit/display di backend (mis. 'masjid', 'mcu', 'poli'). */
   slug: string
   name: string
   loc: string
@@ -114,39 +117,65 @@ export const DEFAULT: Config = {
   footer: { name: '', address: '', phone: '', website: '' },
 }
 
-/** Daftar display yang tersedia (untuk switcher di panel pengaturan). */
-export const DISPLAYS: { slug: string; label: string }[] = [
-  { slug: 'masjid', label: '🕌 Masjid' },
-  { slug: 'mcu', label: '🏥 MCU' },
+export interface Display {
+  /** Kunci config unit di backend, dipakai di URL `?display=`. */
+  slug: string
+  /** Nama unit untuk judul panel & default "Nama Unit". */
+  name: string
+  icon: string
+  /** Design yang dipakai unit ini. Beberapa unit boleh berbagi design. */
+  type: DisplayType
+}
+
+/**
+ * Daftar unit display yang tersedia (untuk switcher di panel pengaturan).
+ * Menambah unit baru cukup menambah satu baris di sini — backend membuat
+ * baris config-nya otomatis saat admin pertama kali menyimpan.
+ */
+export const DISPLAYS: Display[] = [
+  { slug: 'masjid', name: 'Masjid', icon: '🕌', type: 'masjid' },
+  { slug: 'mcu', name: 'MCU', icon: '🏥', type: 'mcu' },
+  { slug: 'poli', name: 'Poli', icon: '🩺', type: 'mcu' },
 ]
+
+/** Unit bawaan bila slug tidak dikenal. */
+const FALLBACK: Display = DISPLAYS[0]
+
+/** Data unit untuk sebuah slug. */
+export function displayFor(slug: string): Display {
+  return DISPLAYS.find((d) => d.slug === slug) ?? FALLBACK
+}
 
 /** Slug display yang sedang dibuka layar ini, dari URL `?display=`. */
 export function currentSlug(): string {
   const p = new URLSearchParams(location.search).get('display')
-  return p === 'mcu' ? 'mcu' : 'masjid'
+  return DISPLAYS.some((d) => d.slug === p) ? p! : FALLBACK.slug
 }
 
 /** URL untuk berpindah ke display lain (masjid = tanpa query). */
 export function displayUrl(slug: string): string {
   const u = new URL(location.href)
-  if (slug === 'masjid') u.searchParams.delete('display')
+  if (slug === FALLBACK.slug) u.searchParams.delete('display')
   else u.searchParams.set('display', slug)
   return u.pathname + u.search
 }
 
-/** Tipe display bawaan untuk sebuah slug (sebelum data backend tersedia). */
-function defaultType(slug: string): DisplayType {
-  return slug === 'mcu' ? 'mcu' : 'masjid'
-}
-
 // Cache config terakhir dari server, agar layar langsung tampil saat dibuka
 // (sebelum request ke backend selesai). Sumber kebenaran tetap backend.
-// Per-slug agar tampilan masjid & mcu tidak saling menimpa.
+// Per-slug agar config antar unit tidak saling menimpa.
 const CACHE_PREFIX = 'masjidCfgCache_v1'
 const cacheKey = (slug: string) => `${CACHE_PREFIX}:${slug}`
 
 export function loadConfig(slug: string = currentSlug()): Config {
-  const seed: Config = { ...DEFAULT, type: defaultType(slug), slug }
+  const d = displayFor(slug)
+  const seed: Config = {
+    ...DEFAULT,
+    type: d.type,
+    slug: d.slug,
+    // DEFAULT.name adalah nama lengkap masjid; unit lain pakai nama unitnya
+    // sampai config dari backend datang.
+    name: d.slug === FALLBACK.slug ? DEFAULT.name : d.name,
+  }
   try {
     const parsed = JSON.parse(localStorage.getItem(cacheKey(slug)) || '{}')
     return {

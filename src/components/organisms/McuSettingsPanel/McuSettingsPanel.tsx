@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { Config } from '../../../lib/config'
+import { displayFor } from '../../../lib/config'
 import { apiLogin, apiLogout, apiUploadSlides, isAuthed } from '../../../lib/api'
 import { isYoutube } from '../../../lib/youtube'
 import { Button } from '../../atoms/Button'
@@ -15,8 +16,12 @@ export interface McuSettingsPanelProps {
   onClose: () => void
 }
 
-/** Pengaturan untuk tampilan unit MCU (kiri slideshow, kanan YouTube). */
+/**
+ * Pengaturan untuk unit ber-design MCU (kiri slideshow, kanan YouTube).
+ * Dipakai semua unit dengan design ini (MCU, Poli, dst).
+ */
 function McuSettingsPanel({ cfg, onSave, onClose }: McuSettingsPanelProps) {
+  const display = displayFor(cfg.slug)
   const [name, setName] = useState(cfg.name)
   const [leftSlideSec, setLeftSlideSec] = useState(String(cfg.leftSlideSec || 6))
   const [rightYoutube, setRightYoutube] = useState(cfg.rightYoutube)
@@ -79,7 +84,7 @@ function McuSettingsPanel({ cfg, onSave, onClose }: McuSettingsPanelProps) {
     const next: Config = {
       ...cfg,
       type: 'mcu',
-      name: name.trim() || 'MCU',
+      name: name.trim() || display.name,
       leftSlideSec: parseInt(leftSlideSec, 10) || 6,
       rightYoutube: rightYoutube.trim(),
       rightSound,
@@ -113,7 +118,9 @@ function McuSettingsPanel({ cfg, onSave, onClose }: McuSettingsPanelProps) {
       }}
     >
       <div className={styles.panel}>
-        <h2 className={styles.h2}>⚙️ Pengaturan Display MCU</h2>
+        <h2 className={styles.h2}>
+          ⚙️ Pengaturan Display {display.icon} {display.name}
+        </h2>
 
         <DisplaySwitcher />
 

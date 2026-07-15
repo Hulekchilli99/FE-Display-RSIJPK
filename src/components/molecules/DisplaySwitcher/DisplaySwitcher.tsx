@@ -15,7 +15,7 @@ function DisplaySwitcher() {
         const next = e.target.value
         if (next !== slug) location.assign(displayUrl(next))
       }}
-      options={DISPLAYS.map((d) => ({ value: d.slug, label: d.label }))}
+      options={DISPLAYS.map((d) => ({ value: d.slug, label: `${d.icon} ${d.name}` }))}
       hint="Pilih tampilan yang ingin diatur. Berpindah akan memuat ulang layar."
     />
   )
