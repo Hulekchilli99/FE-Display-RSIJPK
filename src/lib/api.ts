@@ -1,8 +1,29 @@
 // Klien API ke backend Laravel (Masjid RSIJPK).
 import type { Config } from './config'
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+// Origin backend. Default: SAMA dengan origin halaman (same-origin), karena Apache
+// vhost frontend mem-proxy /api dan /storage ke backend. Jadi jalan dari LAN
+// maupun publik dengan satu port, tanpa CORS. Override pakai VITE_API_URL bila perlu.
+function backendOrigin(): string {
+  const env = import.meta.env.VITE_API_URL
+  if (env) return env.replace(/\/api\/?$/, '')
+  return '' // same-origin (relatif)
+}
+
+const ORIGIN = backendOrigin()
+const BASE = `${ORIGIN}/api`
 const TOKEN_KEY = 'masjidToken'
+
+/**
+ * Normalisasi URL media absolut dari backend (mis. http://10.12.12.10:8081/storage/..)
+ * agar memakai origin yang sama dengan halaman (di-proxy Apache). Link non-storage
+ * (YouTube/eksternal) dibiarkan apa adanya.
+ */
+function fixMediaUrl(u: string): string {
+  if (!u) return u
+  const i = u.indexOf('/storage/')
+  return i >= 0 ? ORIGIN + u.slice(i) : u
+}
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
@@ -32,7 +53,12 @@ function configPath(slug: string): string {
 export async function apiGetConfig(slug = 'masjid'): Promise<Config> {
   const r = await fetch(configPath(slug), { headers: { Accept: 'application/json' } })
   if (!r.ok) throw new Error('Gagal memuat pengaturan dari server.')
-  return r.json()
+  const cfg = (await r.json()) as Config
+  // Samakan host URL media dengan host API (LAN/publik).
+  if (cfg.bgType !== 'youtube') cfg.bg = fixMediaUrl(cfg.bg)
+  cfg.slides = (cfg.slides || []).map(fixMediaUrl)
+  cfg.leftSlides = (cfg.leftSlides || []).map(fixMediaUrl)
+  return cfg
 }
 
 /** Login admin -> simpan token. */
