@@ -118,3 +118,21 @@ export async function apiUploadSlides(files: File[]): Promise<string[]> {
   const data = await r.json()
   return data.urls as string[]
 }
+
+/**
+ * Upload beberapa video (playlist Walidah) -> daftar URL, urut sesuai pilihan.
+ * Dikirim satu per satu lewat endpoint /media karena file video besar;
+ * `onProgress` dipanggil sebelum tiap file agar panel bisa menampilkan status.
+ */
+export async function apiUploadVideos(
+  files: File[],
+  onProgress?: (index: number, total: number) => void,
+): Promise<string[]> {
+  const urls: string[] = []
+  for (let i = 0; i < files.length; i++) {
+    onProgress?.(i, files.length)
+    const { url } = await apiUploadMedia(files[i])
+    urls.push(url)
+  }
+  return urls
+}
