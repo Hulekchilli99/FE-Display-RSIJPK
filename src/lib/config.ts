@@ -1,12 +1,13 @@
 export type BgType = 'image' | 'slideshow' | 'video' | 'youtube'
 
 /**
- * Design tampilan: masjid (sidebar + jadwal sholat) atau mcu (split layar).
+ * Design tampilan: masjid (sidebar + jadwal sholat), mcu (split layar), atau
+ * walidah (satu frame penuh berisi video upload).
  * Satu design bisa dipakai beberapa unit — lihat DISPLAYS.
  */
-export type DisplayType = 'masjid' | 'mcu'
+export type DisplayType = 'masjid' | 'mcu' | 'walidah'
 
-/** Isi footer biru bawah (layout MCU). */
+/** Isi footer biru bawah (layout MCU & Walidah). */
 export interface Footer {
   name: string
   address: string
@@ -67,6 +68,8 @@ export interface Config {
   /** MCU — footer biru bawah. */
   footerOn: boolean
   footer: Footer
+  /** Walidah — daftar URL video yang diputar bergantian (dari backend). */
+  videos: string[]
 }
 
 export const PRAYER_NAMES: (keyof PrayerTimes)[] = [
@@ -115,6 +118,7 @@ export const DEFAULT: Config = {
   rightSound: false,
   footerOn: false,
   footer: { name: '', address: '', phone: '', website: '' },
+  videos: [],
 }
 
 export interface Display {
@@ -136,6 +140,7 @@ export const DISPLAYS: Display[] = [
   { slug: 'masjid', name: 'Masjid', icon: '🕌', type: 'masjid' },
   { slug: 'mcu', name: 'MCU', icon: '🏥', type: 'mcu' },
   { slug: 'poli', name: 'Poli', icon: '🩺', type: 'mcu' },
+  { slug: 'walidah', name: 'Walidah', icon: '🏢', type: 'walidah' },
 ]
 
 /** Unit bawaan bila slug tidak dikenal. */

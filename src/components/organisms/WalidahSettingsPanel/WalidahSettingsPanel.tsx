@@ -2,8 +2,8 @@ import { useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { Config } from '../../../lib/config'
 import { displayFor } from '../../../lib/config'
-import { apiLogin, apiLogout, apiUploadSlides, isAuthed } from '../../../lib/api'
-import { isYoutube } from '../../../lib/youtube'
+import { apiLogin, apiLogout, apiUploadVideos, isAuthed } from '../../../lib/api'
+import { VIDEO_ACCEPT, isVideoFile } from '../../../lib/media'
 import { Button } from '../../atoms/Button'
 import { Input } from '../../atoms/Input'
 import { Checkbox } from '../../atoms/Checkbox'
@@ -11,31 +11,30 @@ import { DisplaySwitcher } from '../../molecules/DisplaySwitcher'
 import { FooterFields } from '../../molecules/FooterFields'
 import styles from '../SettingsPanel/SettingsPanel.module.css'
 
-export interface McuSettingsPanelProps {
+export interface WalidahSettingsPanelProps {
   cfg: Config
   onSave: (cfg: Config) => Promise<void> | void
   onClose: () => void
 }
 
 /**
- * Pengaturan untuk unit ber-design MCU (kiri slideshow, kanan YouTube).
- * Dipakai semua unit dengan design ini (MCU, Poli, dst).
+ * Pengaturan untuk unit ber-design Walidah (satu frame video upload).
  */
-function McuSettingsPanel({ cfg, onSave, onClose }: McuSettingsPanelProps) {
+function WalidahSettingsPanel({ cfg, onSave, onClose }: WalidahSettingsPanelProps) {
   const display = displayFor(cfg.slug)
   const [name, setName] = useState(cfg.name)
-  const [leftSlideSec, setLeftSlideSec] = useState(String(cfg.leftSlideSec || 6))
-  const [rightYoutube, setRightYoutube] = useState(cfg.rightYoutube)
-  const [rightSound, setRightSound] = useState(cfg.rightSound)
+  const [sound, setSound] = useState(cfg.ytSound)
   const [footerOn, setFooterOn] = useState(cfg.footerOn)
   const [footer, setFooter] = useState({ ...cfg.footer })
 
-  const [pendingSlides, setPendingSlides] = useState<File[] | null>(null)
-  const [slidesInfo, setSlidesInfo] = useState(
-    cfg.leftSlides.length
-      ? `🖼️ ${cfg.leftSlides.length} gambar slideshow tersimpan. Pilih lagi untuk mengganti.`
-      : 'Tekan Ctrl saat memilih untuk memilih beberapa gambar.',
+  const [pendingFiles, setPendingFiles] = useState<File[] | null>(null)
+  const [fileInfo, setFileInfo] = useState(
+    cfg.videos.length
+      ? `🎬 ${cfg.videos.length} video tersimpan. Pilih lagi untuk mengganti.`
+      : 'Mendukung MP4, MOV & WebM. Tekan Ctrl saat memilih untuk memilih beberapa video.',
   )
+  // Ada file yang dilewati karena formatnya tidak bisa diputar di layar.
+  const [adaDitolak, setAdaDitolak] = useState(false)
 
   const [authed, setAuthed] = useState(isAuthed())
   const [email, setEmail] = useState('')
@@ -62,16 +61,32 @@ function McuSettingsPanel({ cfg, onSave, onClose }: McuSettingsPanelProps) {
     setAuthed(false)
   }
 
-  function onSlidesFile(e: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || []).filter((f) =>
-      f.type.startsWith('image'),
-    )
-    setPendingSlides(files.length ? files : null)
-    setSlidesInfo(
-      files.length
-        ? `🖼️ ${files.length} gambar dipilih`
-        : 'Tekan Ctrl saat memilih untuk memilih beberapa gambar.',
-    )
+  function onVideoFiles(e: ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(e.target.files || [])
+    if (!picked.length) return
+
+    // Urutkan sendiri agar urutan putar pasti (urutan FileList dari browser
+    // tidak dijamin). "video2" sebelum "video10" -> numeric: true.
+    const files = picked
+      .filter(isVideoFile)
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+    const ditolak = picked.filter((f) => !isVideoFile(f))
+
+    setPendingFiles(files.length ? files : null)
+    setAdaDitolak(ditolak.length > 0)
+
+    const tolakInfo = ditolak.length
+      ? `⚠️ Dilewati (didukung: MP4, MOV, WebM): ${ditolak
+          .map((f) => f.name)
+          .join(', ')}. Convert dulu ke MP4.`
+      : ''
+    const pilihInfo = files.length
+      ? `🎬 ${files.length} video dipilih, urut sesuai nama file: ${files
+          .map((f) => f.name)
+          .join(', ')}`
+      : ''
+
+    setFileInfo([pilihInfo, tolakInfo].filter(Boolean).join(' — '))
   }
 
   async function handleSave() {
@@ -84,11 +99,9 @@ function McuSettingsPanel({ cfg, onSave, onClose }: McuSettingsPanelProps) {
 
     const next: Config = {
       ...cfg,
-      type: 'mcu',
+      type: 'walidah',
       name: name.trim() || display.name,
-      leftSlideSec: parseInt(leftSlideSec, 10) || 6,
-      rightYoutube: rightYoutube.trim(),
-      rightSound,
+      ytSound: sound,
       footerOn,
       footer: {
         name: (footer.name ?? '').trim(),
@@ -99,8 +112,10 @@ function McuSettingsPanel({ cfg, onSave, onClose }: McuSettingsPanelProps) {
     }
 
     try {
-      if (pendingSlides) {
-        next.leftSlides = await apiUploadSlides(pendingSlides)
+      if (pendingFiles) {
+        next.videos = await apiUploadVideos(pendingFiles, (i, total) =>
+          setFileInfo(`⏳ Mengupload video ${i + 1} dari ${total}…`),
+        )
       }
       await onSave(next)
       onClose()
@@ -161,41 +176,26 @@ function McuSettingsPanel({ cfg, onSave, onClose }: McuSettingsPanelProps) {
         <h3 className={styles.h3}>Identitas</h3>
         <Input label="Nama Unit" value={name} onChange={(e) => setName(e.target.value)} />
 
-        <h3 className={styles.h3}>Slideshow (kolom kiri)</h3>
+        <h3 className={styles.h3}>Video</h3>
         <Input
-          label="Upload gambar slideshow (boleh banyak sekaligus)"
+          label="Upload video (MP4 / MOV / WebM, boleh banyak sekaligus)"
           type="file"
-          accept="image/*"
+          accept={VIDEO_ACCEPT}
           multiple
-          onChange={onSlidesFile}
-          hint={slidesInfo}
+          onChange={onVideoFiles}
+          hint={fileInfo}
+          error={adaDitolak}
         />
-        <Input
-          label="Ganti gambar tiap berapa detik?"
-          type="number"
-          min={2}
-          value={leftSlideSec}
-          onChange={(e) => setLeftSlideSec(e.target.value)}
-        />
-
-        <h3 className={styles.h3}>Video YouTube (kolom kanan)</h3>
-        <Input
-          label="Link YouTube (Live / Video)"
-          type="text"
-          placeholder="https://youtube.com/..."
-          value={rightYoutube}
-          onChange={(e) => setRightYoutube(e.target.value)}
-          hint={
-            rightYoutube && !isYoutube(rightYoutube)
-              ? 'Sepertinya bukan link YouTube yang valid.'
-              : 'Tempel link live atau video YouTube.'
-          }
-          error={!!rightYoutube && !isYoutube(rightYoutube)}
-        />
+        <p className={styles.note}>
+          Lebih dari satu video akan diputar bergantian berurutan, lalu kembali
+          ke video pertama. Memilih file baru mengganti seluruh daftar. File MOV
+          otomatis diubah ke MP4 saat upload — prosesnya bisa agak lama untuk
+          file besar. Format lain (MKV, AVI) belum didukung.
+        </p>
         <Checkbox
-          label="Putar suara YouTube"
-          checked={rightSound}
-          onChange={(e) => setRightSound(e.target.checked)}
+          label="Putar suara video"
+          checked={sound}
+          onChange={(e) => setSound(e.target.checked)}
         />
         <p className={styles.note}>
           Browser memblokir suara otomatis. Suara baru keluar setelah layar
@@ -231,4 +231,4 @@ function McuSettingsPanel({ cfg, onSave, onClose }: McuSettingsPanelProps) {
   )
 }
 
-export default McuSettingsPanel
+export default WalidahSettingsPanel

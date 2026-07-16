@@ -1,0 +1,68 @@
+/* Layout Walidah: satu frame video penuh, plus baris footer biru opsional
+   di bawah. Sama seperti MCU tanpa split kolom. */
+.screen {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  background: #0b0f14;
+  font-family:
+    'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.pane {
+  grid-row: 1;
+  position: relative;
+  overflow: hidden;
+  /* Latar saat video belum dimuat / rasionya jauh dari layar. */
+  background: radial-gradient(ellipse at center, #1a2330 0%, #0b0f14 100%);
+}
+
+.footerSlot {
+  grid-row: 2;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Penuhi seluruh frame; sisi yang lebih dipotong agar tanpa bar hitam —
+     sama seperti layout MCU. Perlu karena footer memakan tinggi layar,
+     sehingga area video tidak lagi 16:9 seperti videonya. */
+  object-fit: cover;
+}
+
+/* --- Pesan saat video belum diatur --- */
+.msg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: min(82%, 520px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 28px 36px;
+  gap: 12px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  backdrop-filter: blur(2px);
+}
+
+.big {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #facc15;
+}
+
+.sub {
+  font-size: 1rem;
+  color: #cfe9df;
+  line-height: 1.5;
+  max-width: 460px;
+}

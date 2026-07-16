@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Config } from '../../../lib/config'
 import { youtubeEmbedUrl, youtubeId } from '../../../lib/youtube'
+import { DisplayFooter } from '../../molecules/DisplayFooter'
 import styles from './McuScreen.module.css'
 
 export interface McuScreenProps {
@@ -110,7 +111,6 @@ function McuScreen({ cfg }: McuScreenProps) {
 
   const muted = !cfg.rightSound || ytMuted
   const isFile = location.protocol === 'file:'
-  const f = cfg.footer
 
   return (
     <div className={styles.screen}>
@@ -166,37 +166,7 @@ function McuScreen({ cfg }: McuScreenProps) {
       </div>
 
       {cfg.footerOn && (
-        <footer className={styles.footer}>
-          {(f.name || f.address) && (
-            <div className={styles.fItem}>
-              <img className={styles.fLogo} src="/logo-rsijpk.jpg" alt="RSIJPK" />
-              <div className={styles.fText}>
-                {f.name && <div className={styles.fStrong}>{f.name}</div>}
-                {f.address && <div className={styles.fSub}>{f.address}</div>}
-              </div>
-            </div>
-          )}
-          {f.phone && (
-            <div className={styles.fItem}>
-              <span className={styles.fIcon}>📞</span>
-              <div className={styles.fText}>
-                <div className={styles.fSub}>Informasi & Reservasi</div>
-                <div className={styles.fStrong}>{f.phone}</div>
-              </div>
-            </div>
-          )}
-          {f.website && (
-            <div className={styles.fItem}>
-              <span className={styles.fIcon}>🌐</span>
-              <div className={styles.fText}>
-                <div className={styles.fSub}>Kunjungi Website Kami</div>
-                <div className={styles.fStrong}>
-                  {f.website.replace(/^https?:\/\//, '').replace(/\/+$/, '')}
-                </div>
-              </div>
-            </div>
-          )}
-        </footer>
+        <DisplayFooter footer={cfg.footer} className={styles.footerSlot} />
       )}
     </div>
   )

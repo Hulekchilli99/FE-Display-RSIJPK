@@ -8,4 +8,15 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] })
   ],
+  // Layar display dibuka lewat URL tetap, jadi port jangan berpindah diam-diam
+  // saat 3000 terpakai — strictPort membuatnya gagal terang-terangan daripada
+  // menyalakan di port lain yang tak terduga.
+  server: {
+    port: 3000,
+    strictPort: true,
+  },
+  preview: {
+    port: 3000,
+    strictPort: true,
+  },
 })

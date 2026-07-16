@@ -10,6 +10,7 @@ import {
   isAuthed,
 } from '../../../lib/api'
 import { isYoutube } from '../../../lib/youtube'
+import { MEDIA_ACCEPT, isSupportedMedia, isVideoFile } from '../../../lib/media'
 import { Button } from '../../atoms/Button'
 import { Input } from '../../atoms/Input'
 import { Select } from '../../atoms/Select'
@@ -74,8 +75,10 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
     cfg.bgType === 'image' && cfg.bg ? cfg.bg : null,
   )
   const [fileInfo, setFileInfo] = useState(
-    'Mendukung gambar (JPG, PNG) & video (MP4, WebM). Atau tempel URL di bawah.',
+    'Mendukung gambar (JPG, PNG) & video (MP4, MOV, WebM). Atau tempel URL di bawah.',
   )
+  // File yang dipilih formatnya tidak didukung.
+  const [fileError, setFileError] = useState(false)
   const [slidesInfo, setSlidesInfo] = useState(
     cfg.slides.length
       ? `🖼️ ${cfg.slides.length} gambar slideshow tersimpan. Pilih lagi untuk mengganti.`
@@ -111,10 +114,25 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
   function onBgFile(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
     if (!f) return
-    const type: BgType = f.type.startsWith('video') ? 'video' : 'image'
+
+    // Tolak format yang tidak didukung di sini, bukan setelah upload: backend
+    // menolaknya dengan pesan yang membingungkan, dan layar tetap tidak bisa
+    // menampilkannya.
+    if (!isSupportedMedia(f)) {
+      setPendingFile(null)
+      setPendingType(null)
+      setFileError(true)
+      setFileInfo(
+        `⚠️ ${f.name} tidak didukung. Gambar: JPG, PNG, WebP, GIF. Video: MP4, MOV, WebM. Format lain (mis. MKV) convert dulu ke MP4.`,
+      )
+      return
+    }
+
+    const type: BgType = isVideoFile(f) ? 'video' : 'image'
     setPendingFile(f)
     setPendingType(type)
     setBgType(type)
+    setFileError(false)
     setPreview(type === 'image' ? URL.createObjectURL(f) : null)
     setFileInfo((type === 'video' ? '🎬 Video' : '🖼️ Gambar') + ' dipilih: ' + f.name)
   }
@@ -242,9 +260,10 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
         <Input
           label="Upload gambar atau video dari komputer"
           type="file"
-          accept="image/*,video/*"
+          accept={MEDIA_ACCEPT}
           onChange={onBgFile}
           hint={fileInfo}
+          error={fileError}
         />
         {preview && <img className={styles.preview} src={preview} alt="" />}
         <Input

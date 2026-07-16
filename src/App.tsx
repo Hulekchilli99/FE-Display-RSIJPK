@@ -10,6 +10,8 @@ import {
   McuScreen,
   McuSettingsPanel,
   SettingsPanel,
+  WalidahScreen,
+  WalidahSettingsPanel,
 } from './components/organisms'
 import styles from './App.module.css'
 
@@ -19,7 +21,8 @@ function App() {
   const [cfg, setCfg] = useState<Config>(() => loadConfig(slug))
   const [panelOpen, setPanelOpen] = useState(false)
   const [activeName, setActiveName] = useState<string | null>(null)
-  const isMcu = cfg.type === 'mcu'
+  // Cuaca & jadwal sholat hanya dipakai design masjid.
+  const isMasjid = cfg.type === 'masjid'
 
   // Ambil config terbaru dari backend saat dibuka, lalu cache untuk paint instan.
   useEffect(() => {
@@ -40,7 +43,7 @@ function App() {
 
   // Cuaca & jadwal sholat otomatis (khusus masjid).
   useEffect(() => {
-    if (isMcu) return
+    if (!isMasjid) return
     let alive = true
     const runWeather = async () => {
       const w = await fetchWeather(cfg)
@@ -60,16 +63,16 @@ function App() {
       clearInterval(pId)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMcu, cfg.autoWeather, cfg.autoPrayer, cfg.lat, cfg.lon, cfg.method])
+  }, [isMasjid, cfg.autoWeather, cfg.autoPrayer, cfg.lat, cfg.lon, cfg.method])
 
   // Highlight sholat yang sedang berlangsung, perbarui tiap 30 detik (masjid).
   useEffect(() => {
-    if (isMcu) return
+    if (!isMasjid) return
     const update = () => setActiveName(activePrayer(cfg.times, new Date()))
     update()
     const id = setInterval(update, 30000)
     return () => clearInterval(id)
-  }, [isMcu, cfg.times])
+  }, [isMasjid, cfg.times])
 
   const handleSave = async (next: Config) => {
     const saved = await apiUpdateConfig(next, slug)
@@ -89,8 +92,10 @@ function App() {
         ⚙️
       </button>
 
-      {isMcu ? (
+      {cfg.type === 'mcu' ? (
         <McuScreen cfg={cfg} />
+      ) : cfg.type === 'walidah' ? (
+        <WalidahScreen cfg={cfg} />
       ) : (
         <div className={styles.screen}>
           <Sidebar
@@ -109,8 +114,14 @@ function App() {
       )}
 
       {panelOpen &&
-        (isMcu ? (
+        (cfg.type === 'mcu' ? (
           <McuSettingsPanel
+            cfg={cfg}
+            onSave={handleSave}
+            onClose={() => setPanelOpen(false)}
+          />
+        ) : cfg.type === 'walidah' ? (
+          <WalidahSettingsPanel
             cfg={cfg}
             onSave={handleSave}
             onClose={() => setPanelOpen(false)}
