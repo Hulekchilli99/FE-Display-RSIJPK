@@ -1,26 +1,31 @@
-/* Layout Walidah: satu frame video penuh, plus baris footer biru opsional
-   di bawah. Sama seperti MCU tanpa split kolom. */
+/* Layout Walidah: satu frame video penuh layar, dengan footer biru opsional
+   melayang di atasnya. Sama seperti MCU tanpa split kolom. */
 .screen {
   position: relative;
   width: 100vw;
   height: 100vh;
-  display: grid;
-  grid-template-rows: 1fr auto;
+  overflow: hidden;
   background: #0b0f14;
   font-family:
     'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
 }
 
+/* Pane memenuhi layar, bukan sisa tinggi setelah footer. Layar dan video
+   sama-sama 16:9, jadi video pas persis tanpa bar hitam di kiri/kanan —
+   footer tidak boleh memotong tinggi pane atau bar itu muncul lagi. */
 .pane {
-  grid-row: 1;
-  position: relative;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
   /* Latar saat video belum dimuat / rasionya jauh dari layar. */
   background: radial-gradient(ellipse at center, #1a2330 0%, #0b0f14 100%);
 }
 
+/* Menempel di tepi bawah, di atas video. */
 .footerSlot {
-  grid-row: 2;
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 2;
 }
 
 .video {
@@ -28,10 +33,10 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  /* Video tampil utuh tanpa terpotong (logo harus selalu terlihat penuh).
-     Area video tidak 16:9 seperti videonya karena footer memakan tinggi
-     layar, jadi sisanya diisi backdrop .pane. */
-  object-fit: contain;
+  /* Selalu penuhi layar tanpa bar hitam, berapa pun rasio layarnya.
+     Konsekuensinya tepi video dipotong bila rasio layar != rasio video —
+     untuk 16:9 di 16:9 potongannya nol. */
+  object-fit: cover;
 }
 
 /* --- Pesan saat video belum diatur --- */
