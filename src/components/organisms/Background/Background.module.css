@@ -20,16 +20,28 @@
 }
 
 /* Tampilkan gambar/poster utuh tanpa terpotong (QR, nomor rekening, logo harus
-   selalu terlihat penuh). Sisa area diisi backdrop gelap di .bg. */
-/* Isi penuh kotak (tanpa bar hitam). Pinggir gambar bisa sedikit terpotong
-   karena rasio kotak (ada sidebar + ticker) ≠ rasio gambar. */
+   selalu terlihat penuh) — rasio kotak (ada sidebar + ticker) ≠ rasio gambar,
+   apalagi di TV 16:9, jadi `cover` selalu memotong tepi. */
 .slide img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
+}
+
+/* Sisa area di kiri/kanan (atau atas/bawah) diisi versi blur dari gambar yang
+   sama, jadi tidak muncul bar hitam kosong. --img di-set dari Background.tsx. */
+.slide::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--img);
+  background-size: cover;
+  background-position: center;
+  filter: blur(32px) brightness(0.45);
+  transform: scale(1.15);
 }
 
 .video {
