@@ -3,9 +3,12 @@
   width: 100vw;
   height: 100vh;
   display: grid;
-  /* Sidebar relatif lebar layar (dibatasi 360-460px) supaya rasio area gambar
-     konsisten di berbagai resolusi, bukan menyempit/melebar ekstrem. */
-  grid-template-columns: clamp(360px, 20vw, 460px) 1fr;
+  /* Sidebar TEPAT 20vw — JANGAN dibungkus clamp(). Batas 360px bikin sidebar
+     makan 28% lebar di TV 1280x720 (bukan 20%), sehingga rasio area gambar
+     berubah jadi 1.386 dan poster 1536x1015 muncul pinggiran atas-bawah.
+     20vw murni + ticker 6vh mengunci area gambar di 80vw x 94vh = rasio 1.513
+     untuk SEMUA layar 16:9 (720p/1080p/4K), jadi satu ukuran poster cukup. */
+  grid-template-columns: 20vw 1fr;
   grid-template-rows: 1fr auto;
 }
 

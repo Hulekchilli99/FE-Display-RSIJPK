@@ -3,9 +3,9 @@
   display: flex;
   align-items: center;
   background: #0b3d2e;
-  /* Tinggi relatif tinggi layar (dibatasi 56-84px) supaya rasio area gambar
-     ikut konsisten lintas resolusi. */
-  height: clamp(56px, 6vh, 84px);
+  /* Tinggi TEPAT 6vh tanpa clamp — pasangan dari sidebar 20vw. Batas 56px
+     bikin ticker terlalu tinggi di 720p dan merusak rasio area gambar. */
+  height: 6vh;
   overflow: hidden;
 }
 

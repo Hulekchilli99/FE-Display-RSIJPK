@@ -1,7 +1,9 @@
 .sidebar {
   grid-row: 1 / 2;
   background: linear-gradient(160deg, var(--green-1), var(--green-2));
-  padding: clamp(14px, 2.2vh, 26px) 24px clamp(14px, 2.2vh, 24px);
+  /* Padding kiri-kanan ikut lebar sidebar (1.25vw = 24px di 1920) agar
+     proporsinya tetap sama saat sidebar 20vw menyempit di TV 720p. */
+  padding: 2.2vh 1.25vw;
   display: flex;
   flex-direction: column;
   overflow: hidden;

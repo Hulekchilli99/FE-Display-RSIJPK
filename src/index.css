@@ -6,11 +6,12 @@
   --sans: 'Segoe UI', Tahoma, sans-serif;
 }
 
-/* Root font-size ikut tinggi layar (basis 1080p = 16px). Semua ukuran rem
-   otomatis menyesuaikan proporsional di TV 1080p maupun 4K, jadi teks tidak
-   mengecil di resolusi tinggi. Dibatasi 13-30px agar aman di window kecil. */
+/* Root font-size ikut tinggi layar (basis 1080p = 16px). TANPA clamp: begitu
+   sidebar dikunci ke 20vw, teks harus ikut skala penuh. Di TV 720p batas 13px
+   bikin teks terlalu besar untuk sidebar yang menyempit jadi 256px, isinya
+   jebol. Tanpa clamp, semua resolusi jadi versi skala dari tampilan yang sama. */
 :root {
-  font-size: clamp(13px, 1.481vh, 30px);
+  font-size: 1.481vh;
 }
 
 * {
