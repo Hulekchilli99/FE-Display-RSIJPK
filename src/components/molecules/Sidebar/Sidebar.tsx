@@ -35,6 +35,12 @@ function Sidebar({
       <Clock />
       <IqomahCountdown times={times} iqomah={iqomah} />
       <PrayerList times={times} activeName={activeName} />
+
+      {/* Menempel di dasar sidebar lewat margin-top:auto, jadi posisinya tetap
+          di bawah berapa pun tinggi daftar sholat / countdown iqomah. */}
+      <div className={styles.credit}>
+        © {new Date().getFullYear()} Tri Aji Bagaskara S.Kom
+      </div>
     </aside>
   )
 }
