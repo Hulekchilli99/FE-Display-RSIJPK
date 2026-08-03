@@ -37,6 +37,17 @@
      Konsekuensinya tepi video dipotong bila rasio layar != rasio video —
      untuk 16:9 di 16:9 potongannya nol. */
   object-fit: cover;
+  z-index: 1;
+}
+
+/* Slot cadangan (double buffer): sudah memuat video berikutnya tapi belum
+   giliran tampil. Disembunyikan dengan opacity — bukan display:none atau
+   visibility:hidden — karena elemen video yang tidak dirender bisa dihentikan
+   pemuatannya oleh browser, padahal buffer itu justru tujuannya. */
+.standby {
+  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
 }
 
 /* --- Pesan saat video belum diatur --- */

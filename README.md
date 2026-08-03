@@ -60,3 +60,12 @@ src/
 - Gambar/video di-upload ke backend; layar membaca URL-nya dari `GET /api/config`.
 - Kalau backend mati, layar memakai **cache config** terakhir (localStorage) agar tetap tampil.
 - Teks berjalan: kecepatan scroll otomatis menyesuaikan panjang teks (`Ticker.tsx`).
+- **`/storage` saat `npm run dev`** dilayani langsung oleh Vite dari folder media
+  backend (`../BE-Display-RSIJPK/storage/app/public`, atur lewat `VITE_STORAGE_DIR`),
+  bukan di-proxy ke `php artisan serve` — server bawaan PHP mengabaikan header
+  `Range` sehingga video terasa tersendat. Ini menyamakan perilaku dev dengan
+  produksi, di mana Apache yang menyajikan `/storage`. Bila folder itu tidak
+  ditemukan, Vite otomatis kembali memakai proxy lama.
+- **Layar Walidah** memutar playlist video dengan dua elemen `<video>` bergantian
+  (double buffer): satu tampil, satunya sudah memuat video berikutnya, sehingga
+  tidak ada jeda hitam saat pergantian.
