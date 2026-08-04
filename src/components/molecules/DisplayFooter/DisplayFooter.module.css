@@ -1,11 +1,19 @@
 /* Footer biru bawah (MCU & Walidah). Hanya tampilan — penempatan di layout
    diatur induk lewat prop className. */
 .footer {
+  /* Jarak antar segmen, dipakai juga untuk menaruh garis pemisah tepat di
+     tengah jarak itu. */
+  --sela: clamp(26px, 4vw, 68px);
+
   position: relative;
   display: flex;
   align-items: center;
+  /* Ketiga segmen dipakai apa adanya lebarnya lalu digrupkan di tengah footer,
+     bukan masing-masing dipaksa selebar sepertiga — kalau dipaksa, teks yang
+     pendek meninggalkan celah besar di dalam segmennya sendiri. */
+  justify-content: center;
   flex-wrap: nowrap;
-  gap: clamp(10px, 1.8vw, 30px);
+  gap: var(--sela);
   padding: clamp(10px, 1.3vw, 18px) clamp(18px, 2.2vw, 40px);
   background:
     radial-gradient(
@@ -34,6 +42,7 @@
 }
 
 .fItem {
+  position: relative;
   display: flex;
   align-items: center;
   gap: clamp(10px, 1vw, 14px);
@@ -46,10 +55,18 @@
   min-width: 0;
 }
 
-/* Separator antar segmen. */
-.fItem + .fItem {
+/* Garis pemisah antar segmen. Digambar sebagai pseudo-element yang melayang
+   tepat di tengah gap, bukan border + padding-left pada segmennya — dengan
+   padding, garis menempel di sisi kiri segmen sehingga jaraknya ke teks kiri
+   dan kanan tidak sama. */
+.fItem + .fItem::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--sela) / -2);
+  top: 50%;
+  transform: translateY(-50%);
+  height: 62%;
   border-left: 1px solid rgba(255, 255, 255, 0.22);
-  padding-left: clamp(10px, 1.8vw, 30px);
 }
 
 /* Ikon dalam badge bulat lembut. */
@@ -97,5 +114,10 @@
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.78);
   line-height: 1.3;
+  /* Sama seperti .fStrong: kalau ketiga segmen tidak muat sebaris (layar
+     sempit / teks panjang), segmen menyusut dan teksnya dipotong rapi — bukan
+     meluber melewati garis pemisah. */
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
