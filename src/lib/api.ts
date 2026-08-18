@@ -58,6 +58,10 @@ export async function apiGetConfig(slug = 'masjid'): Promise<Config> {
   if (cfg.bgType !== 'youtube') cfg.bg = fixMediaUrl(cfg.bg)
   cfg.slides = (cfg.slides || []).map(fixMediaUrl)
   cfg.leftSlides = (cfg.leftSlides || []).map(fixMediaUrl)
+  // Playlist Walidah ikut dinormalkan: tanpa ini <video> menembak origin yang
+  // dibekukan APP_URL saat upload, melewati /storage milik Apache yang
+  // mendukung Range + cache 30 hari -- video panjang jadi patah-patah.
+  cfg.videos = (cfg.videos || []).map(fixMediaUrl)
   return cfg
 }
 
