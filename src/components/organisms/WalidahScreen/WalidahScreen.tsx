@@ -8,15 +8,30 @@ export interface WalidahScreenProps {
 }
 
 /**
+ * Berapa detik sebelum video habis slot cadangan mulai memuat video
+ * berikutnya. Cukup panjang untuk mengisi buffer awal, cukup pendek supaya dua
+ * elemen <video> hanya hidup bersamaan sebentar — lihat catatan di bawah.
+ */
+const PRELOAD_LEAD = 12
+
+/**
  * Tampilan unit Walidah: satu frame penuh berisi video upload, plus footer
  * biru opsional. Bila video lebih dari satu, diputar bergantian berurutan dan
  * kembali ke video pertama setelah yang terakhir selesai.
  *
  * Pergantian memakai dua elemen <video> bergantian (double buffer): satu
- * tampil, satunya diam-diam sudah memuat video berikutnya. Saat video habis
- * keduanya tinggal ditukar, jadi tidak ada layar hitam menunggu buffer —
- * sebelumnya elemen video di-remount tiap ganti sehingga sumber berikutnya
- * baru mulai diunduh setelah yang lama selesai.
+ * tampil, satunya memuat video berikutnya, jadi tidak ada layar hitam menunggu
+ * buffer — sebelumnya elemen video di-remount tiap ganti sehingga sumber
+ * berikutnya baru mulai diunduh setelah yang lama selesai.
+ *
+ * Yang penting untuk TV: slot cadangan baru diberi src pada PRELOAD_LEAD detik
+ * terakhir, dan slot yang selesai langsung dilepas (src dikosongkan -> elemen
+ * tidak dirender). Layar ini dibuka di browser bawaan smart TV, dan SoC TV
+ * umumnya cuma punya SATU hardware video decoder: dua elemen <video> yang
+ * hidup terus-menerus membuat salah satunya jatuh ke software decode dan
+ * videonya patah-patah. Keduanya preload="auto" sepanjang waktu juga bikin
+ * unduhan video cadangan berebut bandwidth dengan video yang sedang diputar.
+ * Layar masjid & MCU tidak kena karena keduanya hanya memakai satu <video>.
  */
 function WalidahScreen({ cfg }: WalidahScreenProps) {
   const videos = cfg.videos || []
@@ -28,11 +43,13 @@ function WalidahScreen({ cfg }: WalidahScreenProps) {
 
   // Slot yang sedang tampil (0 = A, 1 = B).
   const [active, setActive] = useState(0)
-  // Sumber tiap slot. Slot non-aktif diisi video berikutnya supaya ter-buffer
-  // sebelum gilirannya tiba.
+  // Sumber tiap slot. Slot bersumber '' tidak dirender sama sekali, supaya
+  // decoder-nya benar-benar dilepas dan bukan cuma di-pause.
   const [srcs, setSrcs] = useState<[string, string]>(['', ''])
   // Video yang sedang diputar (indeks dalam cfg.videos).
   const [idx, setIdx] = useState(0)
+  // Slot cadangan sudah diisi video berikutnya untuk putaran ini.
+  const [armed, setArmed] = useState(false)
   // Mulai selalu muted agar autoplay pasti jalan; baru unmute saat suara
   // diaktifkan dan browser mengizinkan (flag kiosk / interaksi user).
   const [muted, setMuted] = useState(true)
@@ -46,7 +63,8 @@ function WalidahScreen({ cfg }: WalidahScreenProps) {
     setIdx(0)
     setActive(0)
     setMuted(true)
-    setSrcs([videos[0] ?? '', total > 1 ? videos[1] : ''])
+    setArmed(false)
+    setSrcs([videos[0] ?? '', ''])
   }
 
   // Coba aktifkan suara: langsung (berhasil di browser kiosk dengan flag
@@ -78,39 +96,50 @@ function WalidahScreen({ cfg }: WalidahScreenProps) {
     cur.play().catch(() => setMuted(true))
   }, [active, idx, muted])
 
-  // Slot yang tidak tampil: dihentikan dan dikembalikan ke awal, tapi tetap
-  // memuat (preload="auto") supaya siap diputar begitu ditukar. Reset ini juga
-  // yang membuat playlist 2 video benar — slot lama dipakai ulang untuk video
-  // yang sama dan tanpa reset ia masih berada di posisi akhir.
-  useEffect(() => {
-    const other = (active === 0 ? refB : refA).current
-    if (!other) return
-    other.pause()
-    if (other.currentTime !== 0) {
-      try {
-        other.currentTime = 0
-      } catch {
-        /* belum ada metadata: posisi awal memang sudah 0 */
-      }
-    }
-  }, [active, idx])
+  // Slot cadangan tidak perlu di-pause/reset lagi seperti dulu: slot yang
+  // selesai dilepas dari DOM, jadi yang dipakai giliran berikutnya selalu
+  // elemen baru yang sudah berada di posisi 0.
+
+  // Mulai memuat video berikutnya menjelang akhir video yang tampil.
+  const arm = () => {
+    if (armed || total < 2) return
+    const cur = (active === 0 ? refA : refB).current
+    if (!cur) return
+
+    const left = cur.duration - cur.currentTime
+    if (!Number.isFinite(left) || left > PRELOAD_LEAD) return
+
+    setArmed(true)
+    setSrcs((s) => {
+      const out: [string, string] = [s[0], s[1]]
+      out[active === 0 ? 1 : 0] = videos[(idx + 1) % total] ?? ''
+      return out
+    })
+  }
 
   // Tukar slot: yang sudah ter-buffer langsung tampil, slot yang baru selesai
-  // dipakai untuk memuat video sesudahnya.
+  // dikosongkan supaya decoder-nya bebas.
   const advance = () => {
     if (total < 2) return
     const next = (idx + 1) % total
+    const nextActive = active === 0 ? 1 : 0
+
     setIdx(next)
-    setActive(active === 0 ? 1 : 0)
+    setActive(nextActive)
+    setArmed(false)
     setSrcs((s) => {
       const out: [string, string] = [s[0], s[1]]
-      out[active] = videos[(next + 1) % total] ?? ''
+      out[active] = ''
+      // Biasanya sudah terisi saat arm; diisi di sini sebagai jaring pengaman
+      // bila durasi tidak pernah terbaca sehingga arm tak sempat jalan.
+      out[nextActive] = videos[next] ?? ''
       return out
     })
   }
 
   const slot = (i: 0 | 1) => (
     <video
+      key={i}
       ref={i === 0 ? refA : refB}
       className={`${styles.video} ${active === i ? '' : styles.standby}`}
       src={srcs[i]}
@@ -121,6 +150,7 @@ function WalidahScreen({ cfg }: WalidahScreenProps) {
       muted={active === i ? muted : true}
       preload="auto"
       playsInline
+      onTimeUpdate={() => active === i && arm()}
       onEnded={() => active === i && advance()}
       // Video rusak / gagal dimuat jangan menghentikan playlist. Error pada
       // slot cadangan diabaikan — akan ketahuan saat gilirannya tampil.
@@ -133,8 +163,8 @@ function WalidahScreen({ cfg }: WalidahScreenProps) {
       <div className={styles.pane}>
         {srcs[0] || srcs[1] ? (
           <>
-            {slot(0)}
-            {total > 1 && slot(1)}
+            {srcs[0] ? slot(0) : null}
+            {srcs[1] ? slot(1) : null}
           </>
         ) : (
           <div className={styles.msg}>
