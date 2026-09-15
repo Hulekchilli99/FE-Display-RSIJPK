@@ -74,8 +74,12 @@ function App() {
     return () => clearInterval(id)
   }, [isMasjid, cfg.times])
 
-  const handleSave = async (next: Config) => {
-    const saved = await apiUpdateConfig(next, slug)
+  // Panel mengirim PATCH — hanya field yang memang diedit panel itu. Backend
+  // (`sometimes` di ConfigController) membiarkan field yang tidak dikirim apa
+  // adanya, sehingga state klien yang basi/belum lengkap tidak bisa menimpa
+  // data di server.
+  const handleSave = async (patch: Partial<Config>) => {
+    const saved = await apiUpdateConfig(patch, slug)
     setCfg((prev) => ({ ...prev, ...saved, times: { ...prev.times, ...saved.times } }))
     cacheConfig(saved, slug)
   }

@@ -33,10 +33,13 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  /* Selalu penuhi layar tanpa bar hitam, berapa pun rasio layarnya.
-     Konsekuensinya tepi video dipotong bila rasio layar != rasio video —
-     untuk 16:9 di 16:9 potongannya nol. */
-  object-fit: cover;
+  /* Tampilkan video utuh, jangan ada tepi yang terbuang. Sebelumnya `cover`:
+     video dipaksa memenuhi layar, jadi begitu rasio layar tidak persis sama
+     dengan rasio video, kiri-kanan (atau atas-bawah) ikut terpotong — teks dan
+     logo di tepi jadi hilang. `contain` menukar itu dengan bar hitam di sisi
+     yang lebih panjang; di layar 16:9 dengan video 16:9 keduanya sama saja,
+     bar-nya nol. Player YouTube memang sudah berperilaku seperti ini. */
+  object-fit: contain;
   z-index: 1;
 }
 

@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import type { ChangeEvent } from 'react'
-import type { Config } from '../../../lib/config'
+import type { Config, VideoSource } from '../../../lib/config'
 import { displayFor } from '../../../lib/config'
 import { apiLogin, apiLogout, apiUploadVideos, isAuthed } from '../../../lib/api'
 import { VIDEO_ACCEPT, isVideoFile } from '../../../lib/media'
+import { isYoutube } from '../../../lib/youtube'
 import { Button } from '../../atoms/Button'
 import { Input } from '../../atoms/Input'
+import { Select } from '../../atoms/Select'
 import { Checkbox } from '../../atoms/Checkbox'
 import { DisplaySwitcher } from '../../molecules/DisplaySwitcher'
 import { FooterFields } from '../../molecules/FooterFields'
@@ -13,16 +15,20 @@ import styles from '../SettingsPanel/SettingsPanel.module.css'
 
 export interface WalidahSettingsPanelProps {
   cfg: Config
-  onSave: (cfg: Config) => Promise<void> | void
+  /** Menerima patch berisi field yang diedit panel ini saja. */
+  onSave: (patch: Partial<Config>) => Promise<void> | void
   onClose: () => void
 }
 
 /**
- * Pengaturan untuk unit ber-design Walidah (satu frame video upload).
+ * Pengaturan untuk unit ber-design Walidah (satu frame video penuh, sumbernya
+ * video upload atau link YouTube).
  */
 function WalidahSettingsPanel({ cfg, onSave, onClose }: WalidahSettingsPanelProps) {
   const display = displayFor(cfg.slug)
   const [name, setName] = useState(cfg.name)
+  const [videoSource, setVideoSource] = useState<VideoSource>(cfg.videoSource)
+  const [videoYoutube, setVideoYoutube] = useState(cfg.videoYoutube)
   const [sound, setSound] = useState(cfg.ytSound)
   const [footerOn, setFooterOn] = useState(cfg.footerOn)
   const [footer, setFooter] = useState({ ...cfg.footer })
@@ -97,10 +103,14 @@ function WalidahSettingsPanel({ cfg, onSave, onClose }: WalidahSettingsPanelProp
     setBusy(true)
     setError(null)
 
-    const next: Config = {
-      ...cfg,
+    // Hanya field milik panel ini. `videos` sengaja tidak ikut kecuali admin
+    // memang baru mengupload — kalau selalu dikirim, daftar video di server
+    // bisa terhapus oleh state klien yang belum sempat diisi config server.
+    const patch: Partial<Config> = {
       type: 'walidah',
       name: name.trim() || display.name,
+      videoSource,
+      videoYoutube: videoYoutube.trim(),
       ytSound: sound,
       footerOn,
       footer: {
@@ -112,12 +122,12 @@ function WalidahSettingsPanel({ cfg, onSave, onClose }: WalidahSettingsPanelProp
     }
 
     try {
-      if (pendingFiles) {
-        next.videos = await apiUploadVideos(pendingFiles, (i, total) =>
+      if (pendingFiles && videoSource === 'upload') {
+        patch.videos = await apiUploadVideos(pendingFiles, (i, total) =>
           setFileInfo(`⏳ Mengupload video ${i + 1} dari ${total}…`),
         )
       }
-      await onSave(next)
+      await onSave(patch)
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal menyimpan.')
@@ -177,21 +187,69 @@ function WalidahSettingsPanel({ cfg, onSave, onClose }: WalidahSettingsPanelProp
         <Input label="Nama Unit" value={name} onChange={(e) => setName(e.target.value)} />
 
         <h3 className={styles.h3}>Video</h3>
-        <Input
-          label="Upload video (MP4 / MOV / WebM, boleh banyak sekaligus)"
-          type="file"
-          accept={VIDEO_ACCEPT}
-          multiple
-          onChange={onVideoFiles}
-          hint={fileInfo}
-          error={adaDitolak}
+        <Select
+          label="Sumber tayangan"
+          value={videoSource}
+          onChange={(e) => setVideoSource(e.target.value as VideoSource)}
+          options={[
+            { value: 'upload', label: 'Video upload (file sendiri)' },
+            { value: 'youtube', label: 'YouTube (link live / video)' },
+          ]}
+          hint={
+            videoSource === 'upload'
+              ? 'Layar memutar video yang di-upload di bawah ini.'
+              : 'Layar memutar link YouTube. Video yang sudah di-upload tetap tersimpan.'
+          }
         />
-        <p className={styles.note}>
-          Lebih dari satu video akan diputar bergantian berurutan, lalu kembali
-          ke video pertama. Memilih file baru mengganti seluruh daftar. File MOV
-          otomatis diubah ke MP4 saat upload — prosesnya bisa agak lama untuk
-          file besar. Format lain (MKV, AVI) belum didukung.
-        </p>
+
+        {videoSource === 'upload' ? (
+          <>
+            <Input
+              label="Upload video (MP4 / MOV / WebM, boleh banyak sekaligus)"
+              type="file"
+              accept={VIDEO_ACCEPT}
+              multiple
+              onChange={onVideoFiles}
+              hint={fileInfo}
+              error={adaDitolak}
+            />
+            <p className={styles.note}>
+              Lebih dari satu video akan diputar bergantian berurutan, lalu kembali
+              ke video pertama. Memilih file baru mengganti seluruh daftar. File MOV
+              otomatis diubah ke MP4 saat upload — prosesnya bisa agak lama untuk
+              file besar. Format lain (MKV, AVI) belum didukung.
+            </p>
+          </>
+        ) : (
+          <>
+            <Input
+              label="Link YouTube (Live / Video)"
+              type="text"
+              placeholder="https://youtube.com/..."
+              value={videoYoutube}
+              onChange={(e) => setVideoYoutube(e.target.value)}
+              hint={
+                videoYoutube && !isYoutube(videoYoutube)
+                  ? 'Sepertinya bukan link YouTube yang valid.'
+                  : 'Tempel link live atau video YouTube.'
+              }
+              error={!!videoYoutube && !isYoutube(videoYoutube)}
+            />
+            <p className={styles.note}>
+              Satu link saja, memenuhi seluruh layar dan diulang otomatis. Video
+              di-stream dari YouTube, jadi layar butuh koneksi internet.
+            </p>
+            <p className={styles.note}>
+              ⚠️ Videonya harus <b>Publik</b> atau <b>Tidak publik (unlisted)</b>.
+              Video <b>Pribadi</b> tidak bisa diputar di layar mana pun selain
+              lewat akun pemiliknya — yang muncul cuma kotak hitam "Video
+              unavailable", padahal link-nya normal saat kamu buka sendiri di
+              YouTube (karena kamu sedang login). Sama halnya bila pengunggah
+              mematikan opsi penyematan (embed).
+            </p>
+          </>
+        )}
+
         <Checkbox
           label="Putar suara video"
           checked={sound}

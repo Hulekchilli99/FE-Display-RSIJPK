@@ -1,19 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import type { Config } from '../../../lib/config'
-import { youtubeEmbedUrl, youtubeId } from '../../../lib/youtube'
+import { canPlayYoutube } from '../../../lib/youtube'
 import { DisplayFooter } from '../../molecules/DisplayFooter'
+import { YoutubeFrame } from '../../molecules/YoutubeFrame'
 import styles from './McuScreen.module.css'
 
 export interface McuScreenProps {
   cfg: Config
-}
-
-// Kirim perintah ke player YouTube lewat postMessage (butuh enablejsapi=1).
-function ytCommand(frame: HTMLIFrameElement, func: string, args: unknown[] = []) {
-  frame.contentWindow?.postMessage(
-    JSON.stringify({ event: 'command', func, args }),
-    '*',
-  )
 }
 
 /**
@@ -23,14 +16,10 @@ function ytCommand(frame: HTMLIFrameElement, func: string, args: unknown[] = [])
 function McuScreen({ cfg }: McuScreenProps) {
   const slideARef = useRef<HTMLDivElement>(null)
   const slideBRef = useRef<HTMLDivElement>(null)
-  const frameRef = useRef<HTMLIFrameElement>(null)
-  // Mulai selalu muted agar autoplay pasti jalan; di-set false saat suara
-  // diaktifkan + ada izin (flag kiosk / interaksi user) -> iframe reload.
-  const [ytMuted, setYtMuted] = useState(true)
 
   const slides = cfg.leftSlides || []
   const slidesKey = slides.join('|')
-  const ytId = youtubeId(cfg.rightYoutube)
+  const adaYoutube = canPlayYoutube(cfg.rightYoutube)
 
   // --- Slideshow kiri (crossfade dua lapis) ---
   useEffect(() => {
@@ -76,40 +65,6 @@ function McuScreen({ cfg }: McuScreenProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slidesKey, cfg.leftSlideSec])
 
-  // Saat ganti video / matikan suara: kembali ke kondisi muted (autoplay aman).
-  useEffect(() => {
-    setYtMuted(true)
-  }, [ytId, cfg.rightSound])
-
-  // Aktifkan suara saat rightSound aktif: coba via API (jalur kiosk), lalu
-  // reload iframe tanpa mute pada interaksi user pertama (jalur paling andal).
-  useEffect(() => {
-    if (!ytId || !cfg.rightSound) return
-
-    const tryApiUnmute = () => {
-      const f = frameRef.current
-      if (!f) return
-      ytCommand(f, 'unMute')
-      ytCommand(f, 'setVolume', [100])
-      ytCommand(f, 'playVideo')
-    }
-    const timers = ytMuted
-      ? [600, 1500, 3000].map((ms) => setTimeout(tryApiUnmute, ms))
-      : []
-
-    const events: (keyof DocumentEventMap)[] = ['pointerdown', 'touchstart', 'keydown']
-    const onInteract = () => setYtMuted(false)
-    if (ytMuted) {
-      events.forEach((e) => document.addEventListener(e, onInteract, { once: true }))
-    }
-
-    return () => {
-      timers.forEach(clearTimeout)
-      events.forEach((e) => document.removeEventListener(e, onInteract))
-    }
-  }, [ytId, cfg.rightSound, ytMuted])
-
-  const muted = !cfg.rightSound || ytMuted
   const isFile = location.protocol === 'file:'
 
   return (
@@ -132,14 +87,10 @@ function McuScreen({ cfg }: McuScreenProps) {
       </div>
 
       <div className={styles.pane}>
-        {ytId && !isFile ? (
-          <iframe
-            key={`${ytId}-${muted ? 'm' : 's'}`}
-            ref={frameRef}
-            className={styles.frame}
-            src={youtubeEmbedUrl(ytId, muted)}
-            allow="autoplay; encrypted-media"
-            allowFullScreen
+        {adaYoutube ? (
+          <YoutubeFrame
+            url={cfg.rightYoutube}
+            sound={cfg.rightSound}
             title="mcu-video"
           />
         ) : (

@@ -1,0 +1,33 @@
+.frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  /* Biarkan klik menembus ke halaman agar interaksi pertama terdeteksi
+     (dipakai untuk mengaktifkan suara YouTube). */
+  pointer-events: none;
+}
+
+/* Mode isi-penuh: hilangkan pita hitam di tepi. Player YouTube selalu memuat
+   video secara utuh ke dalam iframe, jadi begitu rasio iframe != rasio video
+   (16:9) sisanya jadi pita hitam — dan viewport browser hampir selalu lebih
+   lebar dari 16:9 karena tingginya dipotong toolbar. Perbaikannya: bikin
+   iframe-nya sendiri persis 16:9 dan besarkan sampai menutupi layar, lalu
+   kelebihannya dipotong oleh induk yang ber-`overflow: hidden`.
+
+   Dipakai lewat prop `fill`, dan HANYA sah bila frame-nya memenuhi layar —
+   ukurannya berbasis vw/vh. Jangan dipakai di panel/kolom (mis. kolom kanan
+   MCU): hitungannya akan meleset. */
+.fill {
+  inset: auto; /* batalkan inset:0 dari .frame */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* Ambil yang lebih besar antara "selebar layar" dan "setinggi layar",
+     dua-duanya dikunci pada rasio 16:9. */
+  width: 100vw;
+  height: 56.25vw; /* 100vw * 9/16 */
+  min-width: 177.7778vh; /* 100vh * 16/9 */
+  min-height: 100vh;
+}

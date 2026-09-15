@@ -13,7 +13,8 @@ import styles from '../SettingsPanel/SettingsPanel.module.css'
 
 export interface McuSettingsPanelProps {
   cfg: Config
-  onSave: (cfg: Config) => Promise<void> | void
+  /** Menerima patch berisi field yang diedit panel ini saja. */
+  onSave: (patch: Partial<Config>) => Promise<void> | void
   onClose: () => void
 }
 
@@ -82,8 +83,8 @@ function McuSettingsPanel({ cfg, onSave, onClose }: McuSettingsPanelProps) {
     setBusy(true)
     setError(null)
 
-    const next: Config = {
-      ...cfg,
+    // Hanya field milik panel ini; `leftSlides` menyusul bila ada upload baru.
+    const patch: Partial<Config> = {
       type: 'mcu',
       name: name.trim() || display.name,
       leftSlideSec: parseInt(leftSlideSec, 10) || 6,
@@ -100,9 +101,9 @@ function McuSettingsPanel({ cfg, onSave, onClose }: McuSettingsPanelProps) {
 
     try {
       if (pendingSlides) {
-        next.leftSlides = await apiUploadSlides(pendingSlides)
+        patch.leftSlides = await apiUploadSlides(pendingSlides)
       }
-      await onSave(next)
+      await onSave(patch)
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal menyimpan.')

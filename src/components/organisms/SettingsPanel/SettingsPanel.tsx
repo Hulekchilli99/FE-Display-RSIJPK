@@ -21,7 +21,8 @@ import styles from './SettingsPanel.module.css'
 
 export interface SettingsPanelProps {
   cfg: Config
-  onSave: (cfg: Config) => Promise<void> | void
+  /** Menerima patch berisi field yang diedit panel ini saja. */
+  onSave: (patch: Partial<Config>) => Promise<void> | void
   onClose: () => void
 }
 
@@ -157,8 +158,8 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
     setBusy(true)
     setError(null)
 
-    const next: Config = {
-      ...cfg,
+    // Hanya field milik panel ini; `slides` menyusul bila ada upload baru.
+    const patch: Partial<Config> = {
       name: name.trim() || DEFAULT.name,
       loc: loc.trim(),
       temp: temp.trim() || '—',
@@ -179,26 +180,28 @@ function SettingsPanel({ cfg, onSave, onClose }: SettingsPanelProps) {
       const url = bgUrl.trim()
       if (bgType === 'slideshow') {
         // Slideshow tidak pakai bg tunggal -> buang link/YouTube lama.
-        next.bg = ''
+        patch.bg = ''
         if (pendingSlides) {
-          next.slides = await apiUploadSlides(pendingSlides)
+          patch.slides = await apiUploadSlides(pendingSlides)
         }
       } else if (url) {
-        next.bg = url
-        next.bgType = isYoutube(url) ? 'youtube' : bgType
+        patch.bg = url
+        patch.bgType = isYoutube(url) ? 'youtube' : bgType
       } else if (pendingFile && pendingType) {
         const res = await apiUploadMedia(pendingFile)
-        next.bg = res.url
-        next.bgType = res.type === 'video' ? 'video' : pendingType
-      } else if (bgType !== 'youtube' && isYoutube(next.bg)) {
-        // Pindah dari YouTube ke tipe lain tanpa isi sumber baru -> bersihkan link.
-        next.bg = ''
+        patch.bg = res.url
+        patch.bgType = res.type === 'video' ? 'video' : pendingType
+      } else if (bgType !== 'youtube' && isYoutube(cfg.bg)) {
+        // Pindah dari YouTube ke tipe lain tanpa isi sumber baru -> bersihkan
+        // link. Dicek dari cfg.bg (nilai tersimpan), karena patch.bg belum diisi
+        // di cabang ini.
+        patch.bg = ''
       }
 
-      if (!autoPrayer) next.times = { ...times }
-      next.iqomah = { ...iqomah }
+      if (!autoPrayer) patch.times = { ...times }
+      patch.iqomah = { ...iqomah }
 
-      await onSave(next)
+      await onSave(patch)
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal menyimpan.')

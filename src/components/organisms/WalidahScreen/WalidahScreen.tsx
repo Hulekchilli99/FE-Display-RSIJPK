@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Config } from '../../../lib/config'
+import { canPlayYoutube } from '../../../lib/youtube'
 import { DisplayFooter } from '../../molecules/DisplayFooter'
+import { YoutubeFrame } from '../../molecules/YoutubeFrame'
 import styles from './WalidahScreen.module.css'
 
 export interface WalidahScreenProps {
@@ -15,8 +17,16 @@ export interface WalidahScreenProps {
 const PRELOAD_LEAD = 12
 
 /**
- * Tampilan unit Walidah: satu frame penuh berisi video upload, plus footer
- * biru opsional. Bila video lebih dari satu, diputar bergantian berurutan dan
+ * Tampilan unit Walidah: satu frame penuh berisi video, plus footer biru
+ * opsional. Sumbernya dipilih di panel pengaturan — playlist video upload,
+ * atau satu link YouTube (live/video) yang mengisi seluruh frame.
+ *
+ * Mode YouTube memakai <iframe>, bukan <video>, jadi playlist upload sengaja
+ * dikosongkan selama mode itu aktif: elemen <video> ikut dilepas dari DOM agar
+ * decoder TV tidak dipakai dua player sekaligus (lihat catatan decoder di
+ * bawah).
+ *
+ * Mode upload: bila video lebih dari satu, diputar bergantian berurutan dan
  * kembali ke video pertama setelah yang terakhir selesai.
  *
  * Pergantian memakai dua elemen <video> bergantian (double buffer): satu
@@ -34,7 +44,10 @@ const PRELOAD_LEAD = 12
  * Layar masjid & MCU tidak kena karena keduanya hanya memakai satu <video>.
  */
 function WalidahScreen({ cfg }: WalidahScreenProps) {
-  const videos = cfg.videos || []
+  const pakaiYoutube = cfg.videoSource === 'youtube'
+  // Playlist dikosongkan di mode YouTube supaya seluruh state <video> ikut
+  // di-reset dan slotnya tidak dirender.
+  const videos = pakaiYoutube ? [] : cfg.videos || []
   const listKey = videos.join('|')
   const total = videos.length
 
@@ -158,24 +171,56 @@ function WalidahScreen({ cfg }: WalidahScreenProps) {
     />
   )
 
+  const isFile = location.protocol === 'file:'
+
+  const paneUpload =
+    srcs[0] || srcs[1] ? (
+      <>
+        {srcs[0] ? slot(0) : null}
+        {srcs[1] ? slot(1) : null}
+      </>
+    ) : (
+      <div className={styles.msg}>
+        <div className={styles.big}>Belum ada video</div>
+        <div className={styles.sub}>
+          Klik ikon ⚙️ → bagian <b>Video</b>, lalu upload file MP4/WebM. Boleh
+          lebih dari satu — akan diputar bergantian.
+        </div>
+      </div>
+    )
+
+  const paneYoutube = canPlayYoutube(cfg.videoYoutube) ? (
+    <YoutubeFrame
+      url={cfg.videoYoutube}
+      sound={cfg.ytSound}
+      title="walidah-video"
+      fill
+    />
+  ) : (
+    <div className={styles.msg}>
+      {isFile && cfg.videoYoutube ? (
+        <>
+          <div className={styles.big}>⚠️ YouTube tidak bisa diputar dari file</div>
+          <div className={styles.sub}>
+            Buka lewat server (mis. <code>http://localhost:8080</code>), bukan{' '}
+            <code>file://</code>.
+          </div>
+        </>
+      ) : (
+        <>
+          <div className={styles.big}>Belum ada link YouTube</div>
+          <div className={styles.sub}>
+            Klik ikon ⚙️ → bagian <b>Video</b>, lalu tempel link YouTube —
+            atau ganti sumbernya ke video upload.
+          </div>
+        </>
+      )}
+    </div>
+  )
+
   return (
     <div className={styles.screen}>
-      <div className={styles.pane}>
-        {srcs[0] || srcs[1] ? (
-          <>
-            {srcs[0] ? slot(0) : null}
-            {srcs[1] ? slot(1) : null}
-          </>
-        ) : (
-          <div className={styles.msg}>
-            <div className={styles.big}>Belum ada video</div>
-            <div className={styles.sub}>
-              Klik ikon ⚙️ → bagian <b>Video</b>, lalu upload file MP4/WebM.
-              Boleh lebih dari satu — akan diputar bergantian.
-            </div>
-          </div>
-        )}
-      </div>
+      <div className={styles.pane}>{pakaiYoutube ? paneYoutube : paneUpload}</div>
 
       {cfg.footerOn && (
         <DisplayFooter footer={cfg.footer} className={styles.footerSlot} />

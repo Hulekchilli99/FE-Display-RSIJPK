@@ -66,6 +66,40 @@ src/
   `Range` sehingga video terasa tersendat. Ini menyamakan perilaku dev dengan
   produksi, di mana Apache yang menyajikan `/storage`. Bila folder itu tidak
   ditemukan, Vite otomatis kembali memakai proxy lama.
-- **Layar Walidah** memutar playlist video dengan dua elemen `<video>` bergantian
-  (double buffer): satu tampil, satunya sudah memuat video berikutnya, sehingga
-  tidak ada jeda hitam saat pergantian.
+- **Jalankan layar dalam mode fullscreen / kiosk.** Video signage dibuat 16:9,
+  sementara viewport browser biasa selalu lebih lebar dari 16:9 karena tingginya
+  dipotong toolbar — akibatnya muncul pita hitam di kiri-kanan (mode YouTube)
+  atau tepi video terpotong (mode upload). Fullscreen (F11) atau kiosk membuat
+  viewport sama persis dengan layar, sehingga di TV 16:9 video tampil penuh
+  tanpa pita hitam dan tanpa potongan:
+
+  ```bash
+  chromium --kiosk --autoplay-policy=no-user-gesture-required \
+    "http://<server>/?display=walidah"
+  ```
+
+  Flag `--autoplay-policy` sekaligus membuat suara langsung keluar tanpa perlu
+  layar disentuh lebih dulu.
+
+- **Layar Walidah** punya dua sumber tayangan, dipilih di panel pengaturan
+  (**Sumber tayangan**):
+  - *Video upload* — playlist video diputar dengan dua elemen `<video>`
+    bergantian (double buffer): satu tampil, satunya sudah memuat video
+    berikutnya, sehingga tidak ada jeda hitam saat pergantian.
+  - *YouTube* — satu link live/video memenuhi layar lewat `<iframe>`
+    (komponen `YoutubeFrame`, sama seperti kolom kanan MCU). Playlist upload
+    tidak dirender selama mode ini aktif agar decoder TV tidak dipakai dua
+    player sekaligus; video yang sudah di-upload tetap tersimpan.
+
+    Syaratnya videonya **Publik** atau **Tidak publik (unlisted)**, dan
+    penyematannya tidak dimatikan. Video **Pribadi** hanya tampil sebagai kotak
+    hitam "Video unavailable" — pemiliknya sendiri tetap bisa membukanya di
+    YouTube karena sedang login, jadi gejalanya menyesatkan.
+
+    **Jangan tambahkan `loop=1&playlist=<id>` ke URL embed.** Itu trik looping
+    yang lazim, tapi `playlist=` membuat player memperlakukan video sebagai
+    playlist dan playlist YouTube **hanya menerima video publik**: video
+    unlisted ditolak dengan pesan "This video is unavailable", sementara embed
+    biasa video yang sama jalan normal. Looping ditangani `YoutubeFrame` lewat
+    JS API (tangkap state `ENDED`, putar lagi dari awal), yang bekerja untuk
+    publik maupun unlisted.

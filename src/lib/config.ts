@@ -1,8 +1,11 @@
 export type BgType = 'image' | 'slideshow' | 'video' | 'youtube'
 
+/** Walidah — sumber tayangan: video yang di-upload, atau satu link YouTube. */
+export type VideoSource = 'upload' | 'youtube'
+
 /**
  * Design tampilan: masjid (sidebar + jadwal sholat), mcu (split layar), atau
- * walidah (satu frame penuh berisi video upload).
+ * walidah (satu frame penuh berisi video upload atau YouTube).
  * Satu design bisa dipakai beberapa unit — lihat DISPLAYS.
  */
 export type DisplayType = 'masjid' | 'mcu' | 'walidah'
@@ -70,6 +73,10 @@ export interface Config {
   footer: Footer
   /** Walidah — daftar URL video yang diputar bergantian (dari backend). */
   videos: string[]
+  /** Walidah — sumber yang dipakai layar: playlist upload atau YouTube. */
+  videoSource: VideoSource
+  /** Walidah — URL video/live YouTube (dipakai bila videoSource = 'youtube'). */
+  videoYoutube: string
 }
 
 export const PRAYER_NAMES: (keyof PrayerTimes)[] = [
@@ -119,6 +126,8 @@ export const DEFAULT: Config = {
   footerOn: false,
   footer: { name: '', address: '', phone: '', website: '' },
   videos: [],
+  videoSource: 'upload',
+  videoYoutube: '',
 }
 
 export interface Display {
