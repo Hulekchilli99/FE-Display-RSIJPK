@@ -27,8 +27,18 @@ function ytCommand(frame: HTMLIFrameElement, func: string, args: unknown[] = [])
   )
 }
 
-/** Player state dari YouTube iframe API: video selesai diputar. */
+/** Player state dari YouTube iframe API. */
 const ENDED = 0
+const PLAYING = 1
+
+/** Jarak antar handshake 'listening' selama player belum menjawab (ms). */
+const HALO_TIAP = 1000
+
+/**
+ * Lama menunggu video benar-benar jalan lagi setelah perintah putar-ulang
+ * dikirim, sebelum iframe dimuat ulang sebagai jalan terakhir (ms).
+ */
+const BATAS_ULANG = 4000
 
 /** Pesan hanya dipercaya bila datang dari domain player YouTube. */
 function dariYoutube(origin: string): boolean {
@@ -47,12 +57,19 @@ function dariYoutube(origin: string): boolean {
  * awal), bukan lewat `loop=1&playlist=<id>` di URL embed. Alasannya ada di
  * catatan `youtubeEmbedUrl()`: parameter playlist bikin video unlisted ditolak
  * YouTube. Live stream tidak pernah mengirim ENDED, jadi tidak terpengaruh.
+ *
+ * Dua lapis pengaman supaya putaran tidak pernah berhenti di layar TV:
+ * handshake diulang sampai player menjawab, dan bila perintah putar-ulang tidak
+ * digubris, iframe dimuat ulang.
  */
 function YoutubeFrame({ url, sound, title, className, fill }: YoutubeFrameProps) {
   const frameRef = useRef<HTMLIFrameElement>(null)
   // Mulai selalu muted agar autoplay pasti jalan; di-set false saat suara
   // diaktifkan + ada izin (flag kiosk / interaksi user) -> iframe reload.
   const [ytMuted, setYtMuted] = useState(true)
+  // Dinaikkan untuk memaksa iframe dimuat ulang (jalan terakhir bila perintah
+  // putar-ulang tidak digubris player).
+  const [reload, setReload] = useState(0)
 
   const ytId = youtubeId(url)
 
@@ -68,20 +85,37 @@ function YoutubeFrame({ url, sound, title, className, fill }: YoutubeFrameProps)
 
   // Ulang dari awal saat video selesai. Player baru mengirim event setelah
   // menerima handshake 'listening', dan handshake itu hanya nyangkut kalau
-  // iframe-nya sudah siap — karena itu dikirim beberapa kali. `muted` ikut jadi
-  // dependensi: mengubahnya me-remount iframe (lihat `key`), jadi handshake-nya
-  // harus diulang ke player yang baru.
+  // dokumen player di dalam iframe sudah jalan — di browser TV yang lambat itu
+  // bisa lewat dari beberapa detik pertama. Karena itu handshake dikirim ulang
+  // terus sampai player menjawab, dan dikirim lagi tiap iframe selesai load.
+  // `ytMuted` ikut jadi dependensi: mengubahnya me-remount iframe (lihat `key`),
+  // jadi handshake-nya harus diulang ke player yang baru.
   useEffect(() => {
     if (!ytId) return
     const frame = frameRef.current
     if (!frame) return
+
+    let terhubung = false
+    let ulangTimer: ReturnType<typeof setTimeout> | undefined
 
     const halo = () =>
       frame.contentWindow?.postMessage(
         JSON.stringify({ event: 'listening', id: ytId, channel: 'widget' }),
         '*',
       )
-    const timers = [0, 500, 1500, 3000].map((ms) => setTimeout(halo, ms))
+
+    halo()
+    frame.addEventListener('load', halo)
+    const haloTimer = setInterval(() => {
+      if (!terhubung) halo()
+    }, HALO_TIAP)
+
+    const batalUlang = () => {
+      if (ulangTimer !== undefined) {
+        clearTimeout(ulangTimer)
+        ulangTimer = undefined
+      }
+    }
 
     const onMessage = (e: MessageEvent) => {
       if (!dariYoutube(e.origin) || e.source !== frame.contentWindow) return
@@ -92,6 +126,9 @@ function YoutubeFrame({ url, sound, title, className, fill }: YoutubeFrameProps)
       } catch {
         return // pesan non-JSON dari player, abaikan
       }
+
+      // Pesan apa pun dari player membuktikan handshake sudah nyangkut.
+      terhubung = true
       if (data?.event !== 'onStateChange') return
 
       // Bentuk `info` berbeda antar versi player: angka polos, atau objek.
@@ -99,18 +136,32 @@ function YoutubeFrame({ url, sound, title, className, fill }: YoutubeFrameProps)
         typeof data.info === 'number'
           ? data.info
           : (data.info as { playerState?: number } | null)?.playerState
+
+      // Video jalan lagi -> pembatalan pengaman muat ulang.
+      if (state === PLAYING) {
+        batalUlang()
+        return
+      }
       if (state !== ENDED) return
 
       ytCommand(frame, 'seekTo', [0, true])
       ytCommand(frame, 'playVideo')
+
+      // Sebagian player mengabaikan seekTo dari state ENDED (mis. saat layar
+      // "tonton lagi" sudah muncul). Bila dalam BATAS_ULANG tidak kembali
+      // PLAYING, muat ulang iframe — autoplay membuatnya mulai lagi dari awal.
+      batalUlang()
+      ulangTimer = setTimeout(() => setReload((n) => n + 1), BATAS_ULANG)
     }
 
     window.addEventListener('message', onMessage)
     return () => {
-      timers.forEach(clearTimeout)
+      clearInterval(haloTimer)
+      batalUlang()
+      frame.removeEventListener('load', halo)
       window.removeEventListener('message', onMessage)
     }
-  }, [ytId, ytMuted, sound])
+  }, [ytId, ytMuted, sound, reload])
 
   // Aktifkan suara saat `sound` aktif: coba via API (jalur kiosk), lalu reload
   // iframe tanpa mute pada interaksi user pertama (jalur paling andal).
@@ -146,7 +197,7 @@ function YoutubeFrame({ url, sound, title, className, fill }: YoutubeFrameProps)
 
   return (
     <iframe
-      key={`${ytId}-${muted ? 'm' : 's'}`}
+      key={`${ytId}-${muted ? 'm' : 's'}-${reload}`}
       ref={frameRef}
       className={[styles.frame, fill && styles.fill, className]
         .filter(Boolean)
